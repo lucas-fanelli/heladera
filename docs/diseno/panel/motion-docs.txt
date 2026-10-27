@@ -1,0 +1,349 @@
+=== DOCS ===
+[packageAndVersions]
+ Paquete npm: `motion` (es el sucesor oficial de `framer-motion`; `motion` depende internamente de `framer-motion` con la misma versión). Versión actual en el registro npm al 16-ago-2026: **13.1.0** (publicada 10-ago-2026; changelog: 13.0.0 el 05-ago-2026 rompió sólo una cosa: se quitó la dependencia opcional `@emotion/is-prop-valid` a favor de `<MotionConfig isValidProp={isPropValid}>`; 13.1.0 agregó reorder multidimensional/auto-eje/RTL en `Reorder`). Instalación: `npm install motion`. Imports:
+- `import { motion, AnimatePresence, LayoutGroup, MotionConfig, LazyMotion, domAnimation, domMax, useReducedMotion, useAnimate, usePresence } from "motion/react"` (API completa; el componente `motion` pesa ~34 kb).
+- `import * as m from "motion/react-m"` (componente `m`, ~4.6 kb, se usa dentro de `<LazyMotion features={...}>`).
+- `import { useAnimate } from "motion/react-mini"` (versión mini, sólo WAAPI, 2.3 kb).
+- `import { animate, animateView } from "motion"` (API vanilla, sin React; útil para micro-animaciones sueltas pero NO tiene layout animations reactivas).
+Requisitos React: peerDependencies `react` y `react-dom` `^18.0.0 || ^19.0.0` (marcadas opcionales en `framer-motion` porque el paquete también exporta la API vanilla). Con React 19 los custom components pasan `ref` como prop; con 18 hay que usar `forwardRef` (importa para `motion.create()` y para `mode="popLayout"`).
+IMPORTANTE para ShopList (propuesta con Preact 10): Motion NO declara ni testea soporte para Preact. En la práctica funciona en Vite con `@preact/preset-vite` (alias react → preact/compat) según reportes de la comunidad, pero hay historial de fallos (p. ej. `Cannot read properties of undefined (reading 'context')` en Fresh/SSR con aliasing) y usa hooks modernos (`useId`, `useInsertionEffect`, `useSyncExternalStore`) que preact/compat implementa recién en 10.11+. Recomendación: hacer un spike de 1 hora con Preact 10.2x + `layout` + `AnimatePresence mode="popLayout"` + `LazyMotion/domMax`; si algo falla, o pasan a React 19 (+~40 kb) o eligen la alternativa sin Motion (View Transitions API nativa / FLIP a mano). No hay soporte oficial, así que no dar por hecho.
+
+[bundle]
+ Según motion.dev/docs/react-reduce-bundle-size (leído hoy): componente `motion` completo ≈ **34 kb** (gzip); componente `m` ≈ **4.6 kb** + `LazyMotion` con `domAnimation` **+15 kb** (animate/variants/exit + gestos tap/hover/focus) o `domMax` **+25 kb** (todo lo anterior + pan/drag + **layout animations**). `useAnimate` mini 2.3 kb (sólo WAAPI, `motion/react-mini`) vs híbrido 17 kb. Para ShopList: como el núcleo del pedido son las layout animations (`layout`, `layoutId`, `popLayout` reacomodo), hace falta **`domMax`** — `domAnimation` NO alcanza (los `layout` props no hacen nada). Con `m` + `LazyMotion features={domMax}` quedan ~30 kb en vez de 34 kb: el ahorro es chico porque casi todo lo que pesa es lo que usamos; el beneficio real de LazyMotion es cargar `domMax` con `import()` diferido después del primer render (la lista aparece sin animar 1 vez y a partir de ahí anima). Recomendación pragmática: empezar con `motion` completo (más simple, sin `strict`), y si el budget de la PWA aprieta pasar a `m` + `LazyMotion` (mecánico: reemplazar `motion.` por `m.`). Alternativa vanilla `import { animate } from \"motion\"` (~2.3-5 kb) NO sirve para el reacomodo automático de la lista (no hay layout animations reactivas en vanilla; `animateView` usa View Transitions API — no interrumpible, sin soporte universal, y la propia doc dice que layout animations son mejores para UIs interruptibles como listas).
+
+[reducedMotion]
+ `<MotionConfig reducedMotion=\"user\">` (default es `\"never\"`, o sea hay que ponerlo explícitamente) hace que, cuando el SO tiene 'Reducir movimiento', Motion **desactive las animaciones de transform (x, y, scale, rotate) y las layout animations**, pero **mantenga opacity y backgroundColor** (y en general colores/boxShadow). Consecuencia para ShopList: con reduce-motion las filas se teletransportan (sin FLIP) pero siguen apareciendo/desapareciendo con fade; el `whileTap scale` no hace nada, por eso conviene que el feedback de botones/inputs tenga SIEMPRE un componente no-transform (backgroundColor, boxShadow/ring, opacity) además del scale; el sheet pierde el slide `y` y queda el fade del backdrop; el pulso de duplicado conserva el backgroundColor. `\"always\"` sirve para testear en dev. `useReducedMotion()` devuelve boolean reactivo (se actualiza si el usuario cambia la preferencia) para lo que Motion no controla: `scrollIntoView` smooth vs auto, duración de toasts, o reemplazar `x` por `opacity` a mano como muestra la doc. Complementar con `@media (prefers-reduced-motion: reduce)` en el CSS propio (transiciones de tachado, spinner de 'Sincronizando…').
+
+[reorderVsLayout]
+ Lo que el dueño vio en motion.dev/docs/react-reorder es el componente **`Reorder`** (`Reorder.Group` + `Reorder.Item`): sirve para que el usuario **arrastre** un ítem con el dedo/mouse y lo suelte en otra posición (drag-to-reorder), con `values`/`onReorder`; \"Auto-scroll lists\" es una sección de esa página que dice que, si el `Reorder.Group` está dentro de un contenedor con scroll, el contenedor **se autoscrollea cuando arrastrás un ítem hacia el borde** superior/inferior. Es decir: es una feature de drag & drop, y ShopList no tiene drag & drop (el orden es cronológico / por estado). Lo que el dueño describe — 'si vas escribiendo la lista se tiene que reordenar, se va lo unmatched y sube lo matched; la compra tachada baja y las de atrás suben; que te lleven en vez de teletransportar' — se llama en Motion **layout animations** (prop `layout` / `layout=\"position\"`: cuando React re-renderiza y un elemento cambia de posición, Motion mide antes/después y anima la diferencia con transform, técnica FLIP), combinado con **`AnimatePresence`** (para animar la SALIDA de los que dejan de matchear o se borran, con `mode=\"popLayout\"` para que los demás suban mientras el saliente se desvanece), **`layoutId`** (transición de elemento compartido: cuando un elemento desaparece de un lugar y aparece en otro con el mismo `layoutId`, anima de la posición vieja a la nueva — útil sólo si Pendientes y Comprados son contenedores distintos) y **`LayoutGroup`** (agrupa/sincroniza layout animations entre componentes que no re-renderizan juntos y namespacea `layoutId`s). Internamente `Reorder` usa exactamente estas mismas layout animations (por eso se ve parecido en la demo), pero le agrega drag; sin drag no hay razón de usarlo. Cuándo SÍ usar `Reorder`: si en el futuro se agrega 'ordenar a mano la lista' (arrastrar Leche arriba de Pan) o 'ordenar por pasillo' con el dedo; ahí `Reorder.Group axis=\"y\" values={items} onReorder={setItems}` (+ `useDragControls` para un handle, `layoutScroll` si scrollea) da drag + auto-scroll + reacomodo gratis, y desde 13.1.0 detecta el eje automáticamente y soporta grillas (multidimensional) y RTL.
+
+[apisForOurCases]
+
+## Filtrar la lista mientras se escribe (se van los que no matchean, suben los que sí; entradas al borrar texto)
+   API: prop `layout` (o `layout="position"`) en cada `motion.li` + `AnimatePresence` envolviendo la lista con `mode="popLayout"` e `initial={false}`; keys estables (id de Firestore)
+   HOW: Renderizás sólo los ítems que matchean (filtro en JS). React desmonta los que no matchean → `AnimatePresence` intercepta y les corre `exit={{ opacity: 0, scale: 0.98 }}`; con `mode="popLayout"` el ítem que sale se saca del flujo (position absolute) inmediatamente así los demás pueden reacomodarse ya, y `layout` en los que quedan hace la animación FLIP de posición con transform. Los que vuelven a entrar usan `initial={{opacity:0}} animate={{opacity:1}}`. Resultado exacto de lo que pide el dueño: no es un 'spawn' de matches, es la misma fila que se desliza. Usar `layout="position"` si la fila cambia de tamaño (evita el estiramiento por scale). Para listas de 50-200 ítems agregar `layoutDependency={visibleIds.join()}` o similar para que Motion sólo mida cuando cambia el orden.
+
+## Tildar una fila: se tacha, espera 700 ms y baja al grupo Comprados; las que estaban debajo suben
+   API: `layout` con la MISMA key en un solo padre (opción A, recomendada) o `layoutId` + `LayoutGroup` + `AnimatePresence` cuando Pendientes y Comprados son contenedores distintos (opción B)
+   HOW: Opción A: renderizar pendientes, la cabecera 'Comprados (N)' y comprados como hijos del mismo `<ul>` (o mismo fragmento) ordenados por [pendientes..., header, comprados...]. Al pasar `bought=true` en el estado, el ítem cambia de posición en el array pero conserva la key → React lo mueve, no lo desmonta, y `layout` anima el desplazamiento; los de abajo suben con `layout` también. El delay de 700 ms lo maneja el estado (marcar `checkedLocal` inmediato para tachar; setTimeout 700 ms → cambiar orden). NO usar `transition={{layout:{delay:0.7}}}` porque retrasaría también a los que suben. Opción B (dos listas separadas): darle a cada fila `layoutId={item.id}`, envolver ambas listas en `<LayoutGroup>`; cuando la fila desaparece de Pendientes y aparece en Comprados con el mismo layoutId, Motion hace la 'shared element transition' desde la posición vieja a la nueva. Necesita `AnimatePresence mode="popLayout"` en la lista origen para que los hermanos suban mientras la vieja se va. Más frágil (dos nodos, z-index, y hay que ocultar el nodo saliente con `exit={{opacity:0}}` corto).
+
+## Agregar ítem: entra abajo de la lista
+   API: `initial` + `animate` en el `motion.li` (dentro del mismo `AnimatePresence`), más `layout` en los vecinos
+   HOW: `initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}` con spring corto (`visualDuration: 0.25, bounce: 0.15`). Como es al final, casi no hay reacomodo, pero si la lista está filtrada y al agregar se limpia el filtro, `layout` reacomoda todo suavemente. Hacer scroll al final con `scrollIntoView({behavior: prefersReduced ? 'auto' : 'smooth', block:'end'})` en `onLayoutAnimationComplete` o directamente tras el add. `AnimatePresence initial={false}` para que la carga inicial desde caché no anime todo.
+
+## Vaciar comprados en lote (con confirmación inline)
+   API: `AnimatePresence` (mismo que la lista) + `exit` con `custom`/`usePresenceData` o delay por índice para stagger
+   HOW: Al confirmar, quitás todos los comprados del estado; cada `motion.li` corre su `exit`. Para que no parezca un flash, exit `{opacity:0, x: -16}` con `transition={{ duration: 0.18, delay: i * 0.02 }}` (tope de ~10 filas con stagger, el resto delay 0). La confirmación inline ('¿Vaciar 7 comprados? Sí / No') se anima con `AnimatePresence mode="wait"` intercambiando dos nodos con keys distintas ('label' / 'confirm') dentro de la cabecera. `onExitComplete` puede disparar el toast.
+
+## Deshacer (toast 6-8 s): los ítems vuelven
+   API: `AnimatePresence` + `initial/animate` en filas + keys estables
+   HOW: Al deshacer, reinsertás los mismos docs con los MISMOS ids → las filas entran con su `initial/animate` (fade + y) y `layout` reacomoda. Si el usuario deshace mientras todavía están saliendo, `AnimatePresence` cancela el exit y anima de vuelta (las animaciones son interrumpibles). Evitar keys nuevas (no regenerar ids en el undo).
+
+## Sheets inferiores (<dialog>): ¿Quién sos?, Editar ítem, menú ⋯
+   API: `motion.div` (panel) dentro del `<dialog>` con `initial/animate/exit` + `AnimatePresence`, o CSS nativo; Motion NO controla el top-layer del <dialog>
+   HOW: Motion no sabe abrir/cerrar un `<dialog>` modal (showModal()/close() son imperativos y `close()` saca el elemento del top layer al instante). Patrón: `AnimatePresence` alrededor de `{open && <Sheet/>}`; `Sheet` monta un `motion.dialog` (existe: motion tiene todos los tags HTML) o `<dialog>` normal, hace `ref.current.showModal()` en un `useEffect` de montaje, y el panel interno `motion.div` anima `initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}` con spring sin rebote (`bounce: 0`), backdrop con `motion.div` opacity. Al cerrar: cambiar `open=false` → exit → recién en `onExitComplete`/unmount llamar `dialog.close()`. Con `reducedMotion="user"` el `y` se desactiva y queda sólo opacity (bien). Alternativa 100 % CSS: `@starting-style` + `transition-behavior: allow-discrete` (Chrome/Safari 17.4+) y dejar Motion sólo para la lista.
+
+## Toasts (apilados, con Deshacer)
+   API: `AnimatePresence` + `motion.div` con `layout` y `layoutRoot` en el contenedor `position: fixed`
+   HOW: Contenedor `motion.div layoutRoot style={{position:'fixed', bottom: 'calc(var(--input-bar) + env(safe-area-inset-bottom))'}}`; cada toast `motion.div layout initial={{opacity:0, y:12}} animate={{opacity:1, y:0}} exit={{opacity:0, y:12}}` con `key={toast.id}`. `layoutRoot` hace que Motion no confunda el scroll de la página con movimiento del toast. Pausar el timer en hover/focus; el botón Deshacer con `whileTap`.
+
+## Botón con feedback al presionar (tildar, Vaciar, +, chips)
+   API: `whileTap` (+ `whileHover` sólo desktop) y `transition` spring corto; en `LazyMotion` está en `domAnimation`
+   HOW: `<motion.button whileTap={{ scale: 0.94 }} transition={{ type:'spring', visualDuration: 0.15, bounce: 0.2 }}>`. Tap detecta pointerdown+up sobre el mismo elemento y funciona con Enter (accesible: `whileTap` se aplica al presionar Enter). En touch no hay hover, así que `whileHover` es opcional. Para el checkbox de la fila, animar el ícono con `animate={{ scale: checked ? [1, 1.25, 1] : 1 }}` (keyframes) para el 'pop' al tildar. Mantener target ≥44px: escalar sólo el visual, no el hitbox (`scale` no cambia el área de click porque el hit-test se hace sobre el layout; ok).
+
+## Input con feedback de foco (no perderse con los movimientos)
+   API: `whileFocus` (regla `:focus-visible`) + `animate` según estado controlado
+   HOW: `whileFocus` sigue las reglas de `:focus-visible`: en móvil, tocar un input SÍ da focus-visible en inputs de texto (los UA lo tratan como focus-visible), así que funciona. Ej: `<motion.input whileFocus={{ boxShadow: '0 0 0 3px var(--ring)', scale: 1.01 }} />` (boxShadow anima; con reducedMotion el scale se anula pero el ring queda). Además, para el modo 'filtro activo', animar el contenedor de la barra: `animate={{ backgroundColor: filtering ? 'var(--bg-filter)' : 'var(--bg)' }}` — `backgroundColor` está acelerado por hardware desde 12.43 y NO se desactiva con reduced motion, o sea es el feedback que sobrevive siempre.
+
+## Contador 'Faltan N' que cambia
+   API: `AnimatePresence mode="popLayout"` (o `"wait"`) con `key={n}` sobre un `motion.span`
+   HOW: `<AnimatePresence mode="popLayout" initial={false}><motion.span key={n} initial={{y:8,opacity:0}} animate={{y:0,opacity:1}} exit={{y:-8,opacity:0}} transition={{duration:0.15}}>{n}</motion.span></AnimatePresence>` dentro de un contenedor `position: relative; overflow: hidden; min-width: 2ch` (popLayout necesita padre no-static). Alternativa más simple si es demasiado: `motion.span animate={{ scale: [1, 1.15, 1] }}` disparado por cambio de N (keyframes con `key`).
+
+## Duplicado al agregar: pulso del ítem existente
+   API: `useAnimate` (scope en el `<ul>`, `animate("[data-id='...']", {...})`) o `animate` prop con keyframes ligado a un estado `pulseId`
+   HOW: Imperativo, recomendado: `const [scope, animate] = useAnimate()`; en `onAddDuplicate(id)`: `const el = scope.current.querySelector(`[data-id="${id}"]`); el.scrollIntoView({block:'center', behavior:'smooth'}); animate(el, { backgroundColor: ['var(--pulse)', 'var(--row-bg)'], scale: [1, 1.02, 1] }, { duration: 0.6 })`. Ventaja: no hay que meter estado en 200 filas; `backgroundColor` sigue funcionando en reduced motion (scale no).
+
+## Cambios remotos de otros familiares en vivo (Firestore onSnapshot)
+   API: Los mismos `layout` + `AnimatePresence`, más `initial={false}` en el primer snapshot y `layoutDependency`
+   HOW: Un snapshot remoto es sólo un nuevo array: filas nuevas entran con `initial/animate`, borradas salen con `exit`, tildadas/destildadas se mueven con `layout`. Poner `initial={false}` en `AnimatePresence` para que la hidratación desde caché offline no anime 40 filas; a partir del segundo render animar normal. Si llegan muchos cambios seguidos, Motion los interrumpe y re-targetea (layout animations son interrumpibles). Firestore: `snapshot.metadata.hasPendingWrites` te dice si el cambio es local (ya animado optimistamente) o remoto — podés diferenciar sutilmente (p.ej. `custom={{ remote:true }}` para un fade más largo o un highlight de 'Nico agregó Leche').
+
+[gotchas]
+ - Keys estables: `AnimatePresence` y `layout` rastrean por `key`; usar el id de Firestore, nunca el índice del array ni `name` (si editás el nombre se remonta la fila). Un id nuevo en el 'Deshacer' hace que entre como fila nueva en vez de volver.
+ - `exit` sólo funciona si el componente está dentro de un `AnimatePresence` que sigue montado; el patrón `isVisible && <AnimatePresence>...` no anima nada. Y los `motion` con `exit` tienen que ser hijos DIRECTOS de AnimatePresence (o propagar con `propagate`).
+ - `mode="popLayout"` saca al hijo saliente del flujo con `position: absolute` → el padre (`<ul>`) necesita `position: relative` (no static) y el componente custom debe reenviar `ref` al nodo DOM. Sin popLayout (mode sync), el ítem saliente ocupa espacio hasta terminar y los demás recién suben después: se ve 'a saltos'.
+ - `layout` dentro de un contenedor con scroll propio (nuestra lista si el `<main>` scrollea, no el body): poner `layoutScroll` en el elemento con `overflow: auto/scroll` (`<motion.main layoutScroll>`), si no las posiciones se calculan mal cuando hay scroll offset.
+ - Elementos `position: fixed` que contienen `layout` (toasts, barra de input, cabecera Comprados si es fixed): marcarlos con `layoutRoot` para que Motion no interprete el scroll de la página como desplazamiento. Con `position: sticky` (cabecera 'Comprados') hay un bug histórico (issue #1535) al mezclar reorder con scroll de página: evitar `layout` en el sticky en sí; ponerlo con `layout="position"` sólo si es hijo de la misma lista y testear en iOS.
+ - `layout` (size+position) anima tamaño con `scale` y distorsiona hijos, bordes, borderRadius y boxShadow: usar `layout="position"` en las filas (no cambian de tamaño), poner `borderRadius`/`boxShadow` vía `style` (Motion los corrige) o `layout` también en los hijos. Elementos `display: inline` no animan (transform no aplica).
+ - `initial={false}` en el `AnimatePresence` de la lista: sin eso, el primer render desde la caché offline anima 40 filas entrando; después del primer render las entradas nuevas siguen animando normalmente. Igual en toasts/contador.
+ - Listas largas (>100-150 filas) con `layout`: cada render mide todas las cajas. Mitigar con `layoutDependency` (p.ej. `visibleIds.join('|')` o el `updatedAt` máximo) para medir sólo cuando cambia orden/visibilidad, `layout="position"` en vez de `layout`, y transiciones ≤0.3 s. La doc recomienda desactivar layout animations durante resize horizontal.
+ - No usar `transition.layout.delay` para los 700 ms del tachado: retrasa también a los que suben. El delay va en el estado (setTimeout) y Motion anima el cambio de orden.
+ - iOS Safari: teclado virtual + `position: fixed` bottom bar — el viewport se achica/scrollea; usar `interactive-widget=resizes-content` en el meta viewport o `visualViewport` para posicionar la barra, y `layoutRoot` en ella. Evitar `layout` en elementos que cambian de posición por el teclado (se disparan animaciones falsas). Probar `whileTap` con `touch-action: manipulation` para evitar el delay de doble tap y `-webkit-tap-highlight-color: transparent` para no duplicar el feedback.
+ - `<dialog>`: `close()` saca el elemento del top layer al instante, Motion no lo puede animar; animar el panel interno y llamar `close()` recién al desmontar tras el exit (interceptar el evento `cancel` de Esc con `preventDefault`). Motion sí soporta `motion.dialog` como tag.
+ - z-index al mover entre listas con `layoutId`: durante la transición conviven dos nodos; el saliente debe tener `exit={{opacity:0}}` corto y el entrante puede necesitar `style={{ zIndex: 1 }}` para pasar por encima de las filas. Con la lista única (misma key) esto no existe: por eso es la opción recomendada.
+ - `whileFocus` respeta `:focus-visible`: en botones tocados con el dedo NO dispara (correcto), en inputs de texto sí. Si necesitás foco 'siempre visible' usar `onFocus/onBlur` + `animate`.
+ - Preact 10 + preact/compat: no soportado oficialmente (peerDeps React 18/19); funciona en Vite según la comunidad pero hay reportes de `Cannot read properties of undefined (reading 'context')` en algunos setups. Hacer spike antes de comprometerse; `React.forwardRef` para `popLayout` y `motion.create()` sí existe en compat.
+ - `Reorder` no es lo que necesitamos: es drag & drop para reordenar manualmente. Si algún día se agrega, `Reorder.Group` requiere `values`/`onReorder`, `position: relative` para z-index y `layoutScroll` en contenedores con scroll (13.1 agrega auto-eje y RTL).
+ - 13.0.0: si en algún lado pasaban props no-DOM a `motion.x` y dependían de `@emotion/is-prop-valid`, ahora hay que pasar `<MotionConfig isValidProp={isPropValid}>` explícito. No aplica si arrancan en 13.x desde cero.
+ - `AnimatePresence` + `layout` combinados: desde 12.43 los hijos que salen ya no se intercalan con los que entran (antes podía remontar hijos presentes en ambos renders) — asegurarse de usar ≥12.43 / 13.x.
+ - Chips de historial que aparecen bajo la lista al filtrar: son otra `AnimatePresence` independiente; no compartir keys de ítems entre lista y chips salvo que quieras el efecto de que el chip 'vuele' a la lista (eso sí sería `layoutId` compartido, lindo pero opcional).
+
+[snippets]
+
+### 1. Lista filtrable con layout + AnimatePresence (popLayout)
+import { AnimatePresence, motion } from "motion/react"
+
+type Item = { id: string; name: string; bought: boolean }
+
+export function ShopList({ items, filter }: { items: Item[]; filter: string }) {
+  const q = filter.trim().toLocaleLowerCase("es")
+  const visible = q ? items.filter(i => i.name.toLocaleLowerCase("es").includes(q)) : items
+  // orden: pendientes (cronológico) → header → comprados
+  const pending = visible.filter(i => !i.bought)
+  const bought = visible.filter(i => i.bought)
+
+  return (
+    <ul className="list" style={{ position: "relative" }}>
+      <AnimatePresence initial={false} mode="popLayout">
+        {pending.map(item => <Row key={item.id} item={item} />)}
+        <motion.li key="__bought_header" layout="position" className="bought-header">
+          Comprados ({items.filter(i => i.bought).length}) · <button>Vaciar</button>
+        </motion.li>
+        {bought.map(item => <Row key={item.id} item={item} dim />)}
+      </AnimatePresence>
+    </ul>
+  )
+}
+
+function Row({ item, dim }: { item: Item; dim?: boolean }) {
+  return (
+    <motion.li
+      layout="position"                       // solo posición: la fila no cambia de tamaño
+      data-id={item.id}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: dim ? 0.55 : 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0.1 }, opacity: { duration: 0.15 } }}
+    >
+      {item.name}
+    </motion.li>
+  )
+}
+// Clave: la misma key (id de Firestore) en pendientes y comprados → React MUEVE el nodo
+// y `layout` anima el desplazamiento; los que estaban debajo suben solos.
+
+### 2. Tildar → tachar → 700 ms → baja a Comprados (estado, no delay de Motion)
+import { useState, useRef } from "react"
+import { motion } from "motion/react"
+
+function useCheck(setBought: (id: string, v: boolean) => void) {
+  const [striking, setStriking] = useState<Set<string>>(new Set())
+  const timers = useRef(new Map<string, number>())
+  return {
+    isStriking: (id: string) => striking.has(id),
+    toggle(id: string, currentlyBought: boolean) {
+      if (currentlyBought) return setBought(id, false)        // destildar: sube ya
+      setStriking(s => new Set(s).add(id))                    // tachado inmediato
+      clearTimeout(timers.current.get(id))
+      timers.current.set(id, window.setTimeout(() => {
+        setBought(id, true)                                    // acá cambia de grupo → layout anima
+        setStriking(s => { const n = new Set(s); n.delete(id); return n })
+      }, 700))
+    },
+  }
+}
+
+// en la fila:
+<motion.button
+  whileTap={{ scale: 0.92 }}
+  onClick={() => check.toggle(item.id, item.bought)}
+  aria-pressed={item.bought}
+  style={{ minWidth: 44, minHeight: 44 }}
+>
+  <motion.span animate={{ scale: item.bought || check.isStriking(item.id) ? [1, 1.3, 1] : 1 }}
+               transition={{ duration: 0.25 }}>✓</motion.span>
+</motion.button>
+<motion.span animate={{ opacity: check.isStriking(item.id) ? 0.5 : 1 }}
+             className={check.isStriking(item.id) || item.bought ? "strike" : ""}>
+  {item.name}
+</motion.span>
+
+### 3. Alternativa: mover entre DOS listas con layoutId + LayoutGroup
+import { AnimatePresence, LayoutGroup, motion } from "motion/react"
+
+// Sólo si Pendientes y Comprados son contenedores separados (p.ej. la cabecera Comprados
+// es sticky y necesita su propio <section>). Mismo layoutId en ambos lados.
+export function TwoLists({ pending, bought }: { pending: Item[]; bought: Item[] }) {
+  return (
+    <LayoutGroup id="shoplist">
+      <ul style={{ position: "relative" }}>
+        <AnimatePresence initial={false} mode="popLayout">
+          {pending.map(i => (
+            <motion.li key={i.id} layoutId={i.id} layout="position"
+              exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>{i.name}</motion.li>
+          ))}
+        </AnimatePresence>
+      </ul>
+      <header className="bought-header">Comprados ({bought.length})</header>
+      <ul style={{ position: "relative" }}>
+        <AnimatePresence initial={false} mode="popLayout">
+          {bought.map(i => (
+            <motion.li key={i.id} layoutId={i.id} layout="position"
+              exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>{i.name}</motion.li>
+          ))}
+        </AnimatePresence>
+      </ul>
+    </LayoutGroup>
+  )
+}
+// Motion ve desaparecer layoutId=X arriba y aparecer abajo → anima desde la posición vieja.
+// Preferí el snippet 1 (una sola lista) salvo que el markup lo impida.
+
+### 4. Botón whileTap + input whileFocus (feedback visual)
+import { motion } from "motion/react"
+
+export const tapSpring = { type: "spring", visualDuration: 0.15, bounce: 0.2 } as const
+
+export function TapButton(props: React.ComponentProps<typeof motion.button>) {
+  return <motion.button whileTap={{ scale: 0.94 }} transition={tapSpring} {...props} />
+}
+
+export function InputBar({ value, onChange, filtering }: { value: string; onChange: (v: string) => void; filtering: boolean }) {
+  return (
+    <motion.form
+      className="input-bar"                                    // position: fixed; bottom: env(safe-area-inset-bottom)
+      animate={{ backgroundColor: filtering ? "var(--bar-filtering)" : "var(--bar)" }}  // sobrevive a reduced motion
+      transition={{ duration: 0.2 }}
+    >
+      <motion.input
+        value={value}
+        onChange={e => onChange(e.currentTarget.value)}
+        placeholder="Agregar o buscar…"
+        enterKeyHint="done"
+        whileFocus={{ boxShadow: "0 0 0 3px var(--ring)", scale: 1.01 }}  // sigue :focus-visible
+        transition={{ duration: 0.15 }}
+        style={{ minHeight: 44, borderRadius: 12 }}                     // borderRadius por style para que Motion lo corrija
+      />
+      <TapButton type="submit" aria-label="Agregar">+</TapButton>
+    </motion.form>
+  )
+}
+
+### 5. MotionConfig reducedMotion="user" + transición global + useReducedMotion
+import { MotionConfig, useReducedMotion } from "motion/react"
+
+export function App({ children }) {
+  return (
+    // "user": si el SO tiene 'Reducir movimiento', desactiva transform y layout animations,
+    // mantiene opacity y backgroundColor. Default es "never", así que hay que ponerlo.
+    <MotionConfig reducedMotion="user" transition={{ type: "spring", visualDuration: 0.3, bounce: 0.1 }}>
+      {children}
+    </MotionConfig>
+  )
+}
+
+// Para lo que Motion no cubre (scrollIntoView, timers de toast, etc.)
+export function useScrollBehavior(): ScrollBehavior {
+  const reduce = useReducedMotion()   // boolean reactivo (se actualiza si cambian la preferencia)
+  return reduce ? "auto" : "smooth"
+}
+
+### 6. LazyMotion + m (bundle chico; layout necesita domMax)
+// features.ts
+import { domMax } from "motion/react"
+export default domMax           // domAnimation NO incluye layout/drag; nosotros usamos layout → domMax
+
+// App.tsx
+import { LazyMotion, MotionConfig } from "motion/react"
+import * as m from "motion/react-m"
+
+const loadFeatures = () => import("./features").then(r => r.default)
+
+export function App() {
+  return (
+    <LazyMotion features={loadFeatures} strict>   {/* strict: tira error si alguien importa `motion` en vez de `m` */}
+      <MotionConfig reducedMotion="user">
+        <m.ul style={{ position: "relative" }}>
+          <m.li layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+        </m.ul>
+      </MotionConfig>
+    </LazyMotion>
+  )
+}
+// AnimatePresence, LayoutGroup, useAnimate, etc. se siguen importando de "motion/react";
+// sólo el componente cambia de `motion.x` a `m.x`. Si features es una función (import dinámico),
+// las primeras animaciones antes de que cargue no animan (los ítems aparecen sin transición) — aceptable
+// en una PWA con precache; o pasá `features={domMax}` sincrónico si preferís simplicidad.
+
+### 7. Sheet inferior sobre <dialog> con exit real
+import { useEffect, useRef } from "react"
+import { AnimatePresence, motion } from "motion/react"
+
+export function SheetHost({ open, onClose, children }: { open: boolean; onClose(): void; children: React.ReactNode }) {
+  return (
+    <AnimatePresence>
+      {open && <Sheet key="sheet" onClose={onClose}>{children}</Sheet>}
+    </AnimatePresence>
+  )
+}
+
+function Sheet({ onClose, children }: { onClose(): void; children: React.ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const d = ref.current!
+    if (!d.open) d.showModal()               // top layer + focus trap + Esc nativos
+    const onCancel = (e: Event) => { e.preventDefault(); onClose() }  // Esc → exit animado, no cierre seco
+    d.addEventListener("cancel", onCancel)
+    return () => { d.removeEventListener("cancel", onCancel); d.open && d.close() }  // se ejecuta DESPUÉS del exit
+  }, [onClose])
+
+  return (
+    <motion.dialog ref={ref} className="sheet-dialog"          // dialog transparente, sin ::backdrop propio
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <motion.div className="sheet-panel"                       // position: fixed; bottom: 0; padding-bottom: env(safe-area-inset-bottom)
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", visualDuration: 0.3, bounce: 0 }}>
+        {children}
+      </motion.div>
+    </motion.dialog>
+  )
+}
+// Con reducedMotion="user" el `y` se desactiva y queda sólo el fade del dialog: correcto.
+
+### 8. Pulso del ítem existente cuando hay duplicado (useAnimate, sin estado por fila)
+import { useAnimate } from "motion/react"   // o "motion/react-mini" si sólo usás WAAPI
+
+export function useDuplicatePulse() {
+  const [scope, animate] = useAnimate<HTMLUListElement>()   // scope va en el <ul> (ref={scope})
+  const pulse = (id: string) => {
+    const el = scope.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"]`)
+    if (!el) return
+    el.scrollIntoView({ block: "center", behavior: "smooth" })
+    // backgroundColor sigue animando con reduced motion; scale se ignora → siempre hay feedback
+    animate(el, { backgroundColor: ["var(--pulse)", "var(--row-bg)"], scale: [1, 1.02, 1] }, { duration: 0.6, ease: "easeOut" })
+  }
+  return { scope, pulse }
+}
+// Y el toast: "Ya está en la lista" con AnimatePresence + layoutRoot en el contenedor fixed.
+
+[sources]
+ - https://motion.dev/docs/react-quick-start
+ - https://motion.dev/docs/react-layout-animations
+ - https://motion.dev/docs/react-animate-presence
+ - https://motion.dev/docs/react-layout-group
+ - https://motion.dev/docs/react-reorder
+ - https://motion.dev/docs/react-gestures
+ - https://motion.dev/docs/react-transitions
+ - https://motion.dev/docs/react-motion-config
+ - https://motion.dev/docs/react-accessibility
+ - https://motion.dev/docs/react-use-reduced-motion
+ - https://motion.dev/docs/react-reduce-bundle-size
+ - https://motion.dev/docs/react-animation
+ - https://motion.dev/docs/react-motion-component
+ - https://motion.dev/docs/react-use-animate
+ - https://motion.dev/docs/animate-view
+ - https://motion.dev/changelog
+ - https://registry.npmjs.org/motion/latest
+ - https://registry.npmjs.org/framer-motion/latest
+ - https://github.com/denoland/fresh/discussions/591
+ - https://github.com/framer/motion/issues/1535

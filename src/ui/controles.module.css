@@ -1,0 +1,104 @@
+/* Controles compartidos por sheets y Home: botones y campos. Todo con tokens; feedback ≤ 80 ms por :active. */
+
+.primario,
+.secundario,
+.texto,
+.textoPeligro,
+.peligro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: var(--target);
+  padding: 0 var(--s-5);
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out), border-color var(--dur-instant) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.primario {
+  min-height: var(--btn-h);
+  background: var(--accent);
+  color: var(--on-accent);
+  width: 100%;
+}
+.primario:active:not(:disabled) { background: var(--accent-pressed); }
+.primario:disabled { opacity: var(--op-disabled); }
+
+.secundario {
+  background: var(--surface);
+  color: var(--accent-ink);
+  border: var(--bw-field) solid var(--line-strong);
+}
+.secundario:active:not(:disabled) { background: var(--tint); }
+.secundario:disabled { opacity: var(--op-disabled); }
+
+/* Botón de texto: misma CAJA (sin borde, sin relleno), distinto COLOR — y el color es el mensaje. El color
+   dice qué clase de acción es, y es uno de los tres canales por los que un control se anuncia, junto con el
+   orden de foco y el nombre accesible. --accent-ink para lo seguro o lo que descarta (Cancelar, Cerrar,
+   «no, otro»); --danger para lo destructivo. La caja se declara UNA vez para los dos a propósito: que no se
+   puedan separar es lo que impide que «con silueta de texto» termine significando dos cosas distintas. */
+.texto,
+.textoPeligro {
+  padding: 0 var(--s-3);
+}
+.texto { color: var(--accent-ink); }
+.texto:active:not(:disabled) { background: var(--tint); }
+
+/* Destructivo con silueta de texto: --danger COMO TEXTO es justo para lo que el token está escrito («solo
+   Borrar (texto), nunca relleno grande», tokens.css). No usa .peligro porque su borde y su padding --s-4
+   engordan la CAJA. Hasta ahí llega esta clase, que es compartida: quién cede el ancho cuando la fila no
+   entra —y por lo tanto qué termina ganando jerarquía ahí adentro— se decide en la fila, no acá (ver `.fila`
+   en sheets/Accesos.module.css). */
+.textoPeligro { color: var(--danger); }
+.textoPeligro:active:not(:disabled) { background: var(--danger-tint); }
+
+.peligro {
+  color: var(--danger);
+  border: var(--bw-hair) solid var(--danger-line);
+  padding: 0 var(--s-4);
+}
+.peligro:active:not(:disabled) { background: var(--danger-tint); }
+
+/* Campo de texto: ≥ 16px (iOS no hace zoom), borde de 2px, anillo de foco por :focus-visible global */
+.campo {
+  display: block;
+  width: 100%;
+  min-height: var(--btn-h);
+  padding: 0 var(--s-4);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--bw-field) solid var(--line-strong);
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-instant) var(--ease-out);
+}
+.campo::placeholder { color: var(--muted); }
+.campo:focus { border-color: var(--focus-ring); }
+.campo[aria-invalid="true"] { border-color: var(--danger); }
+
+.label {
+  display: block;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--s-2);
+}
+
+.ayuda { font-size: var(--fs-meta); color: var(--muted); line-height: var(--lh-body); }
+.error { font-size: var(--fs-meta); color: var(--danger); margin-top: var(--s-2); }
+
+/* Fila de botones al pie de un sheet: ≥ 8px entre targets */
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+}
+.espacio { flex: 1 1 auto; }

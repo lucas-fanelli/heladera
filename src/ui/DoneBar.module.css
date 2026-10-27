@@ -1,0 +1,75 @@
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--kb-inset) + var(--inputbar-h) + var(--safe-bottom));
+  z-index: var(--z-donebar);
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  height: var(--donebar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: 0 calc(var(--gutter) - var(--s-2) + var(--safe-right)) 0 calc(var(--gutter) - var(--s-2) + var(--safe-left));
+  background: var(--paper);
+  border-top: var(--bw-hair) solid var(--line);
+}
+/* sin comprados: no se ve ni se toca, pero sigue montada (destino de los vuelos; `inert` + aria-hidden en el JSX) */
+.bar[data-visible="false"] { pointer-events: none; }
+.toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--target);
+  padding: 0 var(--s-2);
+  border-radius: var(--r-md);
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.toggle:active { background: var(--tint); }
+.flecha {
+  width: var(--icon-xs); height: var(--icon-xs);
+  flex: none;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.flecha[data-abierto="true"] { transform: rotate(90deg); }
+.rotulo { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* UN solo botón: el rótulo hace crossfade adentro; la altura es fija y el foco no se mueve */
+.vaciar {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-md);
+  color: var(--accent-ink);
+  font-weight: 600;
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.vaciar:active, .vaciar[data-confirmando="true"] { background: var(--tint); }
+.slot {
+  position: relative;   /* popLayout: el rótulo que sale se posiciona absoluto acá adentro */
+  display: grid;
+  align-items: center;
+  min-width: 0;
+  line-height: var(--lh-tight);
+}
+.rotuloVaciar {
+  grid-area: 1 / 1;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}

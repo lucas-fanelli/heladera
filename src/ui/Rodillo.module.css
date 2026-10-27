@@ -1,0 +1,8 @@
+.rodillo {
+  position: relative;   /* popLayout: el número que sale se posiciona absoluto acá adentro */
+  display: inline-grid;
+  overflow: hidden;
+  /* el número nunca cambia el alto de la línea: el hueco lo reserva el propio glifo */
+  vertical-align: baseline;
+}
+.numero { grid-area: 1 / 1; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,32 @@
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-2);
+  padding: var(--s-10) var(--gutter) var(--s-8);
+  color: var(--muted);
+}
+.dibujo { width: var(--illus-size); height: var(--illus-size); color: var(--line-strong); margin-bottom: var(--s-2); }
+.titulo {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-fvs);
+  font-weight: 600;
+  font-size: var(--fs-sheet-title);
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.texto { font-size: var(--fs-body); max-width: var(--text-max); text-wrap: pretty; }
+.boton {
+  margin-top: var(--s-4);
+  min-height: var(--target);
+  padding: 0 var(--s-6);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.boton:active { background: var(--accent-pressed); }

@@ -1,0 +1,41 @@
+# Node / build
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebaserc.local
+
+# Secrets / entorno
+.env
+.env.*
+!.env.example
+!.env.emulador
+
+# Tests
+playwright-report/
+test-results/
+.lighthouseci/
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Accesos rápidos generados (npm run qr)
+qr-heladera.*
+
+# Build de demo (single-file)
+dist-demo/
+
+# datos del emulador de Firebase (npm run emu los exporta/importa)
+.emu-data/

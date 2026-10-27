@@ -1,0 +1,51 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: var(--safe-top) calc(var(--gutter) + var(--safe-right)) 0 calc(var(--gutter) + var(--safe-left));
+  background: var(--paper);
+  border-bottom: var(--bw-hair) solid var(--line);
+  min-width: 0;
+}
+.marca {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-fvs);
+  font-weight: 600;
+  font-size: var(--fs-brand);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 0;   /* la marca no se achica: cede la pastilla (min-width: 0) */
+}
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: none;
+}
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target);
+  height: var(--target);
+  border-radius: 50%;
+  color: var(--ink);
+  transition: background-color var(--dur-instant) var(--ease-std);
+  touch-action: manipulation;
+}
+.boton:active { background: var(--tint); }
+.icono { width: var(--icon-size); height: var(--icon-size); }
+
+/* pantallas muy angostas (≤ 360px): menos aire entre marca, pastilla y acciones */
+@media (max-width: 22.5rem) {
+  .header { gap: var(--s-2); }
+}

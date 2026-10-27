@@ -1,0 +1,54 @@
+<section id="deploy" class="prose">
+  <h2>8. Deploy y operación</h2>
+  <p>Plan Spark de Firebase: gratis, sin tarjeta, sin “sleeping”. Si algún día se pasa la cuota diaria, Firestore rechaza operaciones hasta el día siguiente en vez de facturar: es la garantía estructural del $0. Uso estimado de una familia: &lt;1 % de cada cuota.</p>
+  <h3>Lo que hacés vos una sola vez (≈ 30–45 min)</h3>
+  <ol>
+    <li>Firebase Console con tu Gmail → “Agregar proyecto” (p. ej. <code>heladera-lista</code>; el ID define la URL <code>heladera-lista.web.app</code>). Sin Analytics.</li>
+    <li>Firestore → crear base en modo producción, región <code>southamerica-east1</code> (São Paulo; no se cambia después).</li>
+    <li>Authentication → habilitar proveedor <strong>Anónimo</strong>. Revisar en Configuración si existe “limpieza automática de cuentas anónimas” y <strong>desactivarla</strong> (ver riesgos).</li>
+    <li>Configuración del proyecto → registrar app Web → copiar <code>firebaseConfig</code> a <code>.env</code> (<code>VITE_FIREBASE_*</code>; las claves son públicas por diseño).</li>
+    <li>En la PC: <code>npm i -g firebase-tools</code> → <code>firebase login</code> → <code>firebase init</code> (Hosting con <code>dist</code> + Firestore rules).</li>
+    <li><code>npm run build &amp;&amp; firebase deploy</code> → URL pública HTTPS. Probar en el celular con <code>firebase hosting:channel:deploy prueba</code> (URL temporal) antes de mandarle el link a la familia.</li>
+    <li>Crear la lista desde la app → anotar 3–4 cosas reales → mandar el link por WhatsApp → armar los accesos rápidos que quieras (QR impreso y/o pegatina NFC con el link corto).</li>
+    <li>Agregar un segundo Owner al proyecto (otro Gmail de confianza).</li>
+  </ol>
+  <div class="grid-2">
+    <div class="card">
+      <div class="eyebrow">firebase.json (lo relevante)</div>
+<pre style="margin:10px 0 0"><code>{
+  "hosting": {
+    "public": "dist",
+    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "redirects": [{ "source": "/h", "destination": "/l/&lt;listId&gt;?anotar", "type": 301 }],
+    "headers": [
+      { "source": "**", "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]},
+      { "source": "/{index.html,sw.js,manifest.webmanifest}",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  },
+  "firestore": { "rules": "firestore.rules" }
+}</code></pre>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Operación después del día 1</div>
+      <ul style="font-size:15px;margin:10px 0 0;padding-left:1.2em">
+        <li><strong>Mantenimiento esperado:</strong> 0 h/mes.</li>
+        <li><strong>Cambios de UI:</strong> <code>npm run build &amp;&amp; firebase deploy --only hosting</code>. El service worker se actualiza solo en el próximo arranque (nunca en medio del súper).</li>
+        <li><strong>Cambios de reglas:</strong> <code>firebase deploy --only firestore:rules</code>.</li>
+        <li><strong>Backups:</strong> Spark no tiene backups automáticos. Botón “Exportar JSON” en el menú (los datos son KB) y, si querés, un cron local ocasional.</li>
+        <li><strong>Rotar el link:</strong> crear lista nueva → editar el redirect <code>/h</code> → deploy. El tag no se toca.</li>
+        <li><strong>Desarrollo:</strong> contra el proyecto real con una <em>lista de prueba</em> separada. Los emuladores (piden Java) quedan para cuando quieras testear reglas con calma.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Cómo lo verificamos antes de mandarle el link a mamá</h3>
+  <ol>
+    <li>Dos navegadores en la PC: agregar en uno, ver aparecer en el otro en &lt;1 s.</li>
+    <li>DevTools → Network → Offline: agregar y tildar; cerrar la pestaña; reabrir (sigue todo); volver online → llega al otro navegador.</li>
+    <li>En un Android real, por el canal de prueba HTTPS: instalar la PWA, modo avión, abrir desde el ícono, tildar 3 cosas, salir del modo avión: los tres cambios llegan a la PC. Y el teclado <em>no tapa</em> la barra de agregar.</li>
+    <li>Probar un acceso rápido (QR o pegatina): abre <code>/h</code>, redirige a <code>/l/&lt;id&gt;?anotar</code> y el input queda listo (el destino lleva el <code>?anotar</code> explícito porque Hosting no garantiza conservar el query en un redirect fijo; el test de hosting lo fija).</li>
+    <li>Si hay iPhone: mismo recorrido desde Safari.</li>
+  </ol>
+</section>

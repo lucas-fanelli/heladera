@@ -1,0 +1,100 @@
+<header class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">Documento de diseño · borrador v2 para discutir</div>
+      <h1 style="margin-top:10px">Diseño de ShopList</h1>
+      <p class="lede">La lista de compras de casa, compartida. Se abre desde donde te quede cómodo —el ícono, un link, un QR o la pegatina NFC de la heladera—. Vos anotás el antojo, papá agrega la cerveza, mamá la ve en el súper y la va tildando, con o sin señal.</p>
+      <div class="meta">
+        <span>Estado: propuesta v2</span>
+        <span>Fecha: 16 ago 2026</span>
+        <span>Idioma UI: español rioplatense</span>
+        <span>Panel: 3 arquitecturas · 2 UX · 2 jueces · 3 testing</span>
+      </div>
+    </div>
+    <figure style="margin:0; max-width:340px">
+      <div class="fig-wrap" style="padding:12px">
+      <svg class="dia" viewBox="0 0 300 200" role="img" aria-label="Varios accesos rápidos —ícono en el inicio, link de WhatsApp, QR y pegatina NFC— abren la misma URL en el teléfono; la app no sabe desde dónde la abrieron; los cambios se ven en vivo en los teléfonos de mamá y papá.">
+        <defs>
+          <marker id="ah0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+          <marker id="ah0p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--pen)"/></marker>
+        </defs>
+        <!-- entry chips -->
+        <g>
+          <rect x="6" y="26" width="100" height="24" rx="12" class="box"/><text x="56" y="42" text-anchor="middle" class="lbl" style="font-size:10px">ícono en inicio</text>
+          <rect x="6" y="62" width="100" height="24" rx="12" class="box"/><text x="56" y="78" text-anchor="middle" class="lbl" style="font-size:10px">link WhatsApp</text>
+          <rect x="6" y="98" width="100" height="24" rx="12" class="box"/><text x="56" y="114" text-anchor="middle" class="lbl" style="font-size:10px">QR heladera</text>
+          <rect x="6" y="134" width="100" height="24" rx="12" class="box pen-fill"/><text x="56" y="150" text-anchor="middle" class="lbl pen-text" style="font-size:10px">pegatina NFC</text>
+        </g>
+        <!-- converge to URL -->
+        <path d="M108,38 C122,38 122,92 136,92" class="arrow faint"/>
+        <path d="M108,74 C122,74 122,92 136,92" class="arrow faint"/>
+        <path d="M108,110 C122,110 122,92 136,92" class="arrow faint"/>
+        <path d="M108,146 C122,146 122,92 136,92" class="arrow pen"/>
+        <rect x="138" y="80" width="40" height="24" rx="6" class="box soft"/>
+        <text x="158" y="96" text-anchor="middle" class="lbl">URL</text>
+        <line x1="180" y1="92" x2="196" y2="92" class="arrow" marker-end="url(#ah0)"/>
+        <!-- phone -->
+        <rect x="198" y="52" width="44" height="80" rx="7" class="box pen"/>
+        <rect x="204" y="60" width="32" height="56" rx="2" class="box soft" style="stroke:none"/>
+        <text x="190" y="146" text-anchor="middle" class="lbl" style="font-size:10px">la app no sabe</text>
+        <text x="190" y="158" text-anchor="middle" class="lbl" style="font-size:10px">desde dónde la abrieron</text>
+        <!-- family phones -->
+        <rect x="262" y="20" width="26" height="46" rx="5" class="box"/>
+        <rect x="262" y="118" width="26" height="46" rx="5" class="box"/>
+        <text x="275" y="14" text-anchor="middle" class="lbl">mamá</text>
+        <text x="275" y="178" text-anchor="middle" class="lbl">papá</text>
+        <path d="M244,80 C252,80 252,44 260,44" class="arrow dash" marker-end="url(#ah0)" marker-start="url(#ah0)"/>
+        <path d="M244,104 C252,104 252,140 260,140" class="arrow dash" marker-end="url(#ah0)" marker-start="url(#ah0)"/>
+        <text x="150" y="190" text-anchor="middle" class="lbl">en vivo, con o sin señal</text>
+      </svg>
+      </div>
+    </figure>
+  </div>
+</header>
+
+<section id="resumen" class="prose">
+  <h2 style="border-top:none; margin-top:28px; padding-top:0">1. Resumen</h2>
+  <p><strong>Qué es.</strong> Una PWA (app web instalable) con una sola lista compartida por hogar. Cada ítem es un renglón de texto libre (“2 kg de papas”, “yerba, la de siempre”) que muestra quién lo anotó y, cuando se tilda, quién lo compró. El input de abajo <em>filtra la lista mientras escribís</em>: ves si algo ya está antes de agregarlo, y en el súper sirve para buscar. La lista se ve igual en todos los teléfonos y se actualiza en el momento. Funciona sin señal: se puede leer y tildar; sincroniza cuando vuelve la conexión.</p>
+  <p><strong>Cómo se entra.</strong> Por URL, y da igual desde dónde: el ícono en el inicio, el link de WhatsApp, un QR pegado en la heladera o la pegatina NFC. La pegatina y el QR guardan un link corto y estable (<code>https://&lt;proyecto&gt;.web.app/h</code>) que redirige a la lista secreta (<code>/l/&lt;id&gt;?anotar</code>) y la abre lista para escribir. La app no sabe ni le importa desde dónde la abrieron. <strong>El acceso no es “público”: es por link.</strong> La lista no está listada en ningún lado ni se puede adivinar; la ve quien tiene la URL. Vos se la mandás a mamá y papá <em>una sola vez</em> por WhatsApp (o la escanean de un QR); después la abren desde el ícono. No hay que “compartir” nada cada vez: todos miran la misma lista.</p>
+  <div class="callout ok">
+    <div class="eyebrow">Recomendación en una frase</div>
+    <p style="margin:6px 0 0"><strong>PWA (Vite + React 19 + Motion) que habla directo con Firestore</strong>, servida por Firebase Hosting, sin servidor propio ni cuentas para la familia: el link es la llave, el offline y el tiempo real los resuelve el SDK, y la UI depende de una interfaz <code>Db</code> (no de Firebase) y de una URL (no de la pegatina). Alternativa seria si preferís no depender de Google: un solo proceso Node + SQLite + SSE, siempre que tengas dónde dejarlo prendido.</p>
+  </div>
+  <p><strong>Si querés ir al grano:</strong> mis defaults son Firebase · nombre “Heladera” · estética “papel de almacén” con acento cuero (elegida) · chips Tu nombre/Mamá/Papá · preguntar quién sos al abrir (descartable) · link corto <code>/h</code> para los accesos rápidos (redirige a la lista con <code>?anotar</code>) · ítem de texto libre · lo nuevo abajo · vaciar manual · React 19 (por Motion) · alcance mínimo hoy · tests de reglas y offline en CI (Java opcional en tu PC). Están desarrollados en <a href="#decisiones">§13</a>; el resto del documento explica por qué.</p>
+</section>
+
+<section id="requisitos" class="prose">
+  <h2>2. Requisitos y supuestos</h2>
+  <h3>Funcionales</h3>
+  <ul>
+    <li><strong>Anotar en segundos</strong>: al abrir, el input está a mano (y con foco si se entró por un acceso rápido). Escribir → Enter → aparece para todos.</li>
+    <li><strong>El input filtra la lista</strong> mientras escribís: se ve lo que ya está (pendiente o comprado) y lo que se compró otras veces; el botón dice qué va a pasar (“Agregar «yogur»” / “Ya está” / “Volver a anotar «Yogur»”).</li>
+    <li><strong>Lista compartida en tiempo real</strong>: si papá agrega “cerveza” desde el sillón, mamá lo ve en el súper sin recargar.</li>
+    <li><strong>Tildar / destildar</strong> con un dedo; sección “Comprados” que se puede vaciar de una.</li>
+    <li><strong>Quién agregó / quién compró</strong> visible pero discreto (identidad liviana: un nombre, sin login).</li>
+    <li><strong>Un renglón de texto libre</strong> por ítem: la cantidad o la marca van en el mismo texto (“2 kg de papas”), como en el papel. Sin categorías.</li>
+    <li><strong>Sugerencias</strong> de lo que se compra siempre (historial de la misma lista) al enfocar el input y al empezar a escribir.</li>
+    <li><strong>Mandar la lista por WhatsApp como texto</strong> (“Lista de casa (7): · Leche · Yerba…”) para quien no tiene la app o por las dudas.</li>
+    <li><strong>Sumar a alguien</strong>: el link de la lista, para mandarlo una vez a cada familiar (o a un teléfono nuevo). No es una función de uso diario.</li>
+    <li><strong>Deshacer</strong> borrados accidentales (toast) y confirmar “vaciar comprados”.</li>
+    <li><strong>Movimiento con sentido</strong>: la lista se reordena en vez de teletransportarse (al filtrar, al tildar, al agregar), y botones e inputs dan feedback visual (ver §9).</li>
+  </ul>
+  <h3>No funcionales</h3>
+  <ul>
+    <li><strong>Offline real</strong>: leer y tildar sin señal; las acciones se encolan y se replican al volver la conexión sin duplicar ni pisar cambios de otros.</li>
+    <li><strong>Cero mantenimiento</strong>: si nadie toca nada durante 6 meses, tiene que seguir andando. Costo objetivo: $0/mes.</li>
+    <li><strong>HTTPS obligatorio</strong> (PWA, service worker; y cualquier acceso rápido abre una URL pública).</li>
+    <li><strong>Escala doméstica</strong>: 3–5 personas, &lt;200 ítems vivos, &lt;5.000 ítems históricos. Cualquier cosa que “escale” es sobreingeniería.</li>
+    <li><strong>Usable con una mano</strong> en el súper, con luz fuerte, y en teléfonos Android e iPhone (Safari incluido).</li>
+    <li><strong>Privacidad razonable</strong>: nada público indexable; el link es el secreto. No es un sistema de seguridad, es la lista de casa.</li>
+    <li><strong>Sin acoplamientos</strong>: la UI depende de una interfaz <code>Db</code> y de una URL; ni la pegatina ni Firebase son requisitos de nada más que de su propia capa.</li>
+  </ul>
+  <h3>Restricciones y supuestos</h3>
+  <ul>
+    <li>Equipo: vos. Timeline: hoy. Entorno: Windows 11, Node 22.22, npm 10.9, git 2.51 (carpeta <code>ShopList</code> vacía). Sin Java instalado (relevante para los emuladores de Firebase, ver §12).</li>
+    <li>Supongo <span class="note">teléfonos mixtos (Android + iPhone)</span> y que al menos mamá va a usarlo con señal mala.</li>
+    <li>Supongo que <span class="note">no querés que la familia cree cuentas</span>. Si algún día hace falta, se agrega (ver §11).</li>
+    <li>Supongo <span class="note">una sola lista por hogar</span> como default (con soporte de varias listas en el modelo, sin UI para eso todavía).</li>
+    <li>La pegatina NFC guarda una URL (registro NDEF “URI”). En Android e iPhone (XS+), apoyar el teléfono abre esa URL sin app instalada. Es un acceso rápido; un QR impreso hace exactamente lo mismo.</li>
+  </ul>
+</section>

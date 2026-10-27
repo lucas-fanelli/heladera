@@ -1,0 +1,220 @@
+=== DESIGN ===
+[principles]
+ - ACLARACIÓN DE VOCABULARIO (importante para hablar con el dueño): lo que él describe NO es `Reorder`. En Motion, `Reorder.Group`/`Reorder.Item` es un componente de *drag para reordenar* (arrastrás una fila y las demás se acomodan; el 'auto-scroll' es que la lista scrollea sola cuando arrastrás cerca del borde) — https://motion.dev/docs/react-reorder . ShopList no tiene drag & drop, así que Reorder no aplica. Lo que él quiere ('que se vaya lo unmatched y suba lo matched', 'que la tachada baje y suban las de atrás') se llama **layout animations** (prop `layout`, técnica FLIP: Motion mide la posición antes/después del render y anima la diferencia con transform) — https://motion.dev/docs/react-layout-animations — combinado con **`AnimatePresence`** para animar la salida de filas que dejan de existir en el árbol (`exit`, y `mode="popLayout"` para que las que quedan reflowen mientras la que se va se desvanece) — https://motion.dev/docs/react-animate-presence . `LayoutGroup` sirve para sincronizar layout entre componentes que no re-renderizan juntos (p.ej. grupo Pendientes y grupo Comprados si fueran componentes separados) — https://motion.dev/docs/react-layout-group . `layoutId` es 'shared element' (un elemento nuevo con el mismo layoutId que uno que desaparece anima *desde* la posición del viejo); en esta app casi no hace falta porque una fila que pasa de Pendientes a Comprados es el MISMO nodo con la misma `key`, así que `layout` alcanza. Reservo `layoutId` solo para el swap 'Vaciar' → '¿Vaciar 5? Sí/No' si se implementa como dos elementos distintos.
+ - 1. Continuidad antes que espectáculo: nada se teletransporta. Todo lo que cambia de lugar viaja (layout), lo que aparece entra desde 'cerca' (8 px + fade), lo que se va se desvanece en el lugar. Un solo elemento 'protagonista' por momento; el resto acompaña en bloque, sin stagger, para que se lea como un solo movimiento (como Material 'shared axis', sin copiar).
+ - 2. Lo fijo no se mueve: header, contador, barra de input y cabecera 'Comprados (N) · Vaciar' son anclas visuales. Nunca cambian de tamaño ni posición por una animación (solo cambia su contenido con crossfade). Así, mientras las filas se acomodan, el ojo tiene referencias quietas y el input no se 'pierde'.
+ - 3. Rápido y sin rebote: springs con bounce ≤ 0.15 y duraciones visuales de 150–350 ms. En una lista de compras la animación es información ('esto bajó, esto se fue'), no decoración. Todo interrumpible: Motion re-targetea desde la posición actual, y el usuario nunca espera a que termine una animación para volver a actuar (tipeo continuo, ticks en ráfaga).
+ - 4. Feedback antes que movimiento: cada gesto tiene respuesta local inmediata (≤ 80 ms) en el mismo elemento (press, fill del checkbox, tachado) ANTES de que algo se mueva. Cuando la lista se reordena, el usuario ya vio 'qué' provocó el reordenamiento.
+ - 5. Reordenar es un cambio de orden, no de identidad: cada fila conserva su `key` (id Firestore) en todo su ciclo (pendiente → en espera → comprado → vaciado/undo). Así Motion sabe que es el mismo nodo y lo lleva; nunca la desmontamos y remontamos en otro grupo.
+ - 6. Solo transform + opacity: ninguna coreografía anima height/width/top/margin. La 'colapsada' de altura de una fila que se va se obtiene con `AnimatePresence mode="popLayout"` (la fila sale del flujo y las demás suben con transform).
+ - 7. Reduced motion es una segunda coreografía completa, no un 'apagado': con `prefers-reduced-motion` no hay traslaciones ni escalas, pero sí crossfades cortos y todo el feedback de estado (color, tachado, contador). Nadie pierde información.
+ - 8. Los datos remotos entran igual que los locales, pero sin exigir atención: mismas coreografías, sin sonidos ni pulsos, sin auto-scroll. La única señal 'proactiva' es la del contador y la pastilla de estado.
+ - 9. Todo timing vive en un único módulo `motion/tokens.ts` y en constantes de dominio inyectables (HOLD_MS, TOAST_MS). En tests todo puede colapsar a 0 sin tocar componentes.
+
+[tokens]
+ // motion/tokens.ts (valores concretos; todos escalables por MOTION_SCALE ∈ [0,1], 1 en prod, 0 en tests)
+
+SPRINGS (formato duration/bounce de Motion, https://motion.dev/docs/react-transitions):
+- spring.snappy   = { type:'spring', visualDuration: 0.22, bounce: 0 }      // press, checkbox fill, chips, contador
+- spring.move     = { type:'spring', visualDuration: 0.30, bounce: 0.10 }   // TODO reacomodo de filas (layout) — filtrado, tildar/destildar, undo, remoto
+- spring.settle   = { type:'spring', visualDuration: 0.36, bounce: 0.05 }   // fila tachada bajando al grupo Comprados (el 'protagonista' viaja un poco más lento que las que suben: 0.36 vs 0.30, se lee como 'esta es la que se movió')
+- spring.sheet    = { type:'spring', visualDuration: 0.34, bounce: 0.04 }   // apertura de sheets, toast entrando
+- (equivalente físico si prefieren stiffness/damping: snappy ≈ {stiffness:600, damping:40}, move ≈ {stiffness:420, damping:34}, sheet ≈ {stiffness:380, damping:36})
+
+TWEENS (duraciones):
+- dur.instant = 0.08 s   // cambio de background al presionar, tint de :active
+- dur.fast    = 0.15 s   // fades de entrada/salida de filas, crossfades de texto, focus ring
+- dur.base    = 0.22 s   // tachado (scaleX del pseudo-elemento), fill del checkbox, cambio de color de la pastilla
+- dur.slow    = 0.32 s   // salida de sheet, salida de toast, colapso al vaciar
+- dur.linger  = 0.80 s   // decaimiento del highlight 'acá está' de una fila recién agregada/duplicada
+
+EASINGS:
+- ease.out   = [0.2, 0, 0, 1]     // entradas (decelera fuerte)
+- ease.in    = [0.4, 0, 1, 1]     // salidas (acelera y desaparece)
+- ease.std   = [0.4, 0, 0.2, 1]   // cambios de color/opacity en el lugar
+- ease.linear                     // solo para el progreso del spinner de 'Sincronizando…'
+
+DISTANCIAS / ESCALAS:
+- dist.enter  = 8 px    // y de entrada de filas/toast/chips (translateY(8px) → 0)
+- dist.exit   = -6 px   // y de salida de filas cuando se van por filtro (suben apenas y se desvanecen: 'se fue hacia arriba, fuera del camino')
+- dist.roll   = 6 px    // rodillo del número del contador
+- dist.sheet  = 100 %   // translateY del sheet (desde abajo)
+- scale.press = 0.96    // botones grandes (Agregar, Vaciar, Sí/No, Deshacer)
+- scale.chip  = 0.95    // chips de historial
+- scale.row   = 0.98    // fila al presionar (solo el fondo/scale, no el texto) y al salir
+- scale.check = 0.80 → 1 // checkbox al llenarse
+- opacity.dim = 0.55    // comprados coincidentes bajo filtro; texto tachado 0.6
+
+TIEMPOS DE DOMINIO (NO son motion; viven en `domain/timing.ts`, inyectables):
+- HOLD_MS       = 700   // tachada visible antes de bajar
+- UNHOLD_MS     = 250   // destachada visible antes de subir
+- TOAST_MS      = 7000  // ventana de Deshacer
+- SYNC_SHOW_MIN = 400   // 'Sincronizando…' solo si dura más de esto (anti-flicker)
+- SYNC_HOLD_MIN = 800   // y una vez mostrada, mínimo visible
+- STAGGER_CAP   = 150   // stagger total máximo al vaciar (15 ms/fila, tope 10 filas)
+
+Aplicación global: <MotionConfig reducedMotion="user" transition={spring.snappy}> en la raíz (https://motion.dev/docs/react-accessibility). Cada `motion.li` de fila: transition={{ layout: spring.move, opacity:{duration:dur.fast}, scale:{duration:dur.fast} }} (transiciones por valor: https://motion.dev/docs/react-transitions).
+
+[choreographies]
+
+## Escribir en el input (filtrado en vivo, cada tecla)
+   moves: Filas pendientes que dejan de coincidir se desvanecen en su lugar; las que coinciden suben para cerrar los huecos. Debajo, aparece la sección atenuada 'Comprados que coinciden' (si hay) y los chips de historial. El input, la barra, el header y 'Comprados (N)' NO se mueven.
+   seq: t=0 (keydown): el estado deriva `visible = matches(query)`. Mismo frame: filas no-coincidentes arrancan exit {opacity:0, y:-6, scale:0.98} en dur.fast/ease.in y salen del flujo (popLayout); las coincidentes que quedan reciben layout con spring.move y suben en bloque (sin stagger). Filas que vuelven a coincidir (el usuario borró una letra) entran con {opacity:0→1, y:8→0} en dur.fast/ease.out, sin delay. Chips de historial: entran con opacity+y:8 en dur.fast; los que se van, solo opacity. Sección 'Comprados que coinciden': aparece con opacity (dur.fast), sus filas ya nacen a opacity.dim. Si el usuario sigue tecleando antes de que termine, Motion re-targetea desde la posición actual — no se encola nada. Cap defensivo: si en un solo keystroke cambian > 40 filas, las salidas se hacen con opacity sola (sin y/scale) para ahorrar composición. Los caracteres coincidentes se resaltan con <mark> estático: NO se anima el highlight de texto.
+   apis: `<AnimatePresence mode="popLayout" initial={false}>` envolviendo las `motion.li` (key = id); cada `motion.li layout="position"` (solo posición, evita distorsión de escala del texto); `exit`, `initial`, `animate` con tokens; el contenedor scrolleable con `layoutScroll`; `LayoutGroup` alrededor de Pendientes+Comprados si son componentes separados. Con Preact: los componentes de fila deben usar `forwardRef` (requisito de popLayout).
+
+## Borrar el filtro (botón × del input o vaciar el texto)
+   moves: Todo lo oculto vuelve; lo visible se acomoda a su posición cronológica; desaparecen chips y la sección de comprados coincidentes.
+   seq: t=0: filas que estaban visibles hacen layout a su nueva posición (spring.move); las que reaparecen entran con fade+y:8 (dur.fast) SIN stagger (si hicieran stagger de 30 filas tardaría un segundo). Chips salen con opacity (dur.fast). El botón × del input sale con opacity+scale 0.8 (dur.fast) — el input no cambia de ancho (el × ocupa espacio reservado). Se preserva el scroll del contenedor (no se hace scrollTop=0).
+   apis: Igual que el filtrado; el × es `motion.button` dentro de `AnimatePresence` con `initial={false}`; `whileTap={{scale:0.9}}`.
+
+## Agregar (Enter / botón Agregar)
+   moves: El input se vacía al instante; el filtro cae (todo vuelve); la fila nueva entra al final de Pendientes con highlight que se apaga; el contador rueda N→N+1. Si ya existía pendiente: no se agrega, la existente pulsa el highlight y se scrollea a ella. Si existía en Comprados: se destilda con la coreografía de 'destildar'.
+   seq: t=0: valor del input a '' (sin animación; el foco se mantiene, el teclado no se cierra). Botón Agregar recibe press feedback (scale.press, dur.instant). t=0: filas ocultas reaparecen (fade+y:8, dur.fast) y las visibles hacen layout (spring.move). t=+60 ms: la fila nueva entra con {opacity 0→1, y:8→0} (dur.fast/ease.out) y background tint (accent al 12 %) que decae a transparente en dur.linger — el pequeño delay hace que sea lo último que se mueve y por eso el ojo la encuentra. t=+60: contador rueda. Si la fila nueva queda fuera de la vista: `scrollIntoView({block:'nearest', behavior: reduced ? 'auto' : 'smooth'})` recién cuando termina su entrada (onAnimationComplete), nunca antes (scroll + layout simultáneos marean). Duplicado pendiente: solo tint (dur.linger) + scrollIntoView, sin mover nada.
+   apis: `motion.li` con `initial={{opacity:0,y:8}} animate={{opacity:1,y:0, backgroundColor:[tint, 'transparent']}}` y `transition={{ delay:0.06, backgroundColor:{duration:0.8}, layout: spring.move }}`; `onAnimationComplete` para el scroll; `whileTap` en el botón.
+
+## Tildar (con los 700 ms de espera)
+   moves: Fase A (feedback en el lugar): checkbox se llena, el check se dibuja, aparece el tachado, el texto se atenúa. La fila NO se mueve durante HOLD_MS. Fase B (viaje): la fila baja al tope del grupo Comprados; las filas que estaban debajo suben en bloque; el contador rueda N→N-1 y 'Comprados (N)' rueda M→M+1. Si era la última pendiente, después aparece 'Ya está'.
+   seq: t=0 (tap): fondo de la fila tint (:active) dur.instant; checkbox: círculo se rellena con scale 0.8→1 (spring.snappy) y trazo del check `pathLength 0→1` (dur.base); tachado: pseudo-elemento ::after con `scaleX 0→1` desde la izquierda (dur.base/ease.out) — text-decoration no se anima, así que se dibuja una línea propia; color del texto → muted (dur.base). Estado de dominio: `hold`. La fila muestra data-state="hold". t=0..700: si el usuario vuelve a tocar → cancelar timer, revertir (mismo feedback al revés, dur.fast) y volver a `pending` sin haber movido nada. t=700: estado → `bought`, la fila se re-renderiza dentro del grupo Comprados (misma key, mismo nodo). Motion: la fila viaja con spring.settle (0.36 s), las de abajo suben con spring.move (0.30 s) — el protagonista llega apenas después, se distingue. La opacidad de la fila baja a 0.6 durante el viaje (dur.base). t=700+60: contador 'Faltan' rueda; 'Comprados (N)' rueda. Ráfaga de ticks: cada fila tiene su timer; se mueven a medida que vencen; nunca se agrupan artificialmente. Posición destino: TOPE de Comprados (lo más nuevo arriba) porque es el trayecto más corto desde donde estaba y queda cerca del ojo. Qué NO se anima: la cabecera fija 'Comprados (N) · Vaciar' no cambia de tamaño; el scroll no se toca.
+   apis: `layout="position"` en la fila (viaje), `transition={{layout: isMover ? spring.settle : spring.move}}` (isMover = la fila que acaba de cambiar de grupo; se marca con un flag efímero); checkbox `motion.svg`/`motion.path` con `animate={{pathLength: checked?1:0}}`; círculo `motion.span animate={{scale: checked?1:0}}` con spring.snappy; el timer HOLD_MS vive en el reducer/hook, no en Motion.
+
+## Destildar (desde Comprados, con o sin filtro)
+   moves: Inverso: se limpia el tachado y el checkbox en el lugar (UNHOLD_MS=250 ms para que se vea), luego la fila sube al FINAL de Pendientes (cronológico: 'lo nuevo abajo'), las pendientes no se mueven (llega al final), las comprados de abajo suben para cerrar el hueco. Contadores ruedan.
+   seq: t=0: check `pathLength 1→0` (dur.fast), círculo scale 1→0 (spring.snappy), tachado scaleX 1→0 hacia la izquierda (dur.fast), opacidad de fila 0.6→1 (dur.fast). t=250: estado → `pending`; layout con spring.settle para la que sube, spring.move para las que cierran el hueco. Con filtro activo: la fila sale de 'Comprados que coinciden' y entra a las pendientes coincidentes; misma key → Motion la lleva aunque cruce secciones (LayoutGroup si son componentes distintos). Si queda fuera de la vista: NO auto-scroll (el usuario ya sabe adónde fue: 'al final de pendientes'); el contador que rueda es la confirmación.
+   apis: Igual que tildar; `LayoutGroup` para cruzar entre secciones; sin `layoutId` (misma key).
+
+## Vaciar comprados (confirmación inline)
+   moves: Paso 1: en la cabecera fija, el texto 'Vaciar' se convierte en '¿Vaciar 5?  Sí  No' por crossfade; la cabecera NO cambia de altura. Paso 2 (Sí): las filas compradas se desvanecen con un stagger cortísimo de arriba hacia abajo (15 ms/fila, tope total 150 ms) y el grupo colapsa; 'Comprados (0)' rueda; el toast con Deshacer entra. Paso 3 (No o tap afuera / 4 s sin respuesta): vuelve 'Vaciar' con crossfade.
+   seq: Paso 1 t=0: 'Vaciar' opacity 1→0 (dur.fast/ease.in) y a la vez '¿Vaciar 5? Sí No' opacity 0→1 (dur.fast/ease.out); el contenedor tiene min-width reservado o `layout` para que el ancho tween en dur.base sin saltos — la altura es fija (44 px). El botón 'Sí' es el destructivo: sin color rojo lleno, solo texto de énfasis y press feedback. Paso 2 t=0: cada fila exit {opacity:0, scale:0.98} dur.fast con delay i*15 ms (i<10, después 0); como el grupo Comprados está debajo de Pendientes, NADA de arriba se mueve; el contenedor pierde altura pero como es scroll interior no hay salto de página; si el usuario tenía scrolleado el fondo, se deja que el navegador ajuste (scroll anchoring) — no se anima scroll. t=+150: 'Comprados (N)' rueda a 0. t=+150: toast entra (ver Toast). Paso 3: crossfade inverso.
+   apis: `AnimatePresence mode="wait"` (o `popLayout`) con `initial={false}` para el swap Vaciar ↔ confirmación; opcionalmente `layoutId="vaciar-cta"` si son dos elementos y quieren que el nuevo salga 'desde' el viejo; filas: `exit` con `transition={{ delay: Math.min(i,10)*0.015 }}` vía `custom={i}` de AnimatePresence + `usePresenceData`.
+
+## Deshacer (desde el toast, ≤ 7 s)
+   moves: Las filas vaciadas vuelven al grupo Comprados con fade sin stagger; 'Comprados (N)' rueda de 0 a M; el toast sale.
+   seq: t=0: press feedback en 'Deshacer'; toast exit {opacity:0, y:8} dur.fast/ease.in. t=0: filas re-montan con la MISMA key que tenían (el undo repone los docs; el reducer conserva ids) → entran con {opacity 0→1} dur.fast, sin y (vuelven 'en su sitio', no 'llegan'), sin stagger para que se lea como 'se restauró'. t=+60: contador rueda. Nada arriba se mueve.
+   apis: `AnimatePresence` + `initial` de fila con `opacity:0`; toast en `AnimatePresence` con `exit`; `onExitComplete` del toast para liberar el slot de toasts.
+
+## Cambio remoto entrante mientras miro (sin filtro, sin tipear)
+   moves: Alta remota: la fila nueva entra al final de Pendientes con fade+y:8, sin highlight fuerte (tint más suave: accent 8 % que decae en dur.linger) para que se distinga de una local pero no grite. Tick remoto: la fila del otro hace la misma Fase A (checkbox, tachado) y a los 700 ms baja — así ves QUÉ compró tu familiar, no solo que 'algo se movió'. Destick/edición/borrado remoto: mismas coreografías locales. Contadores ruedan.
+   seq: Snapshot de Firestore llega → reducer aplica diff → el render dispara las mismas animaciones (misma key por id). Reglas: sin auto-scroll, sin sonido, sin pulso de pastilla; si el cambio ocurre fuera del viewport, la única señal es el contador (rueda) — la lista se acomoda igual, la vas a ver al scrollear. Coalescer: si un snapshot trae >1 cambio, se aplican en un solo render (Motion anima todo junto en spring.move); no se secuencian. Coincidencia con acción local: si el remoto mueve una fila que está en `hold` local, el local gana hasta que venza el timer (no interrumpir el hold).
+   apis: Igual que local. Para el tick remoto usar el mismo estado `hold` en el reducer (derivado de `boughtAt` reciente < HOLD_MS) para reproducir la Fase A.
+
+## Cambio remoto mientras escribo (filtro activo)
+   moves: Solo cambia lo que afecta al conjunto visible: si la fila remota coincide con el filtro, entra/sale/viaja con las coreografías normales; si no coincide, NO hay ninguna señal visual (aparecerá cuando se limpie el filtro). El input, los chips y el foco no se tocan jamás. Contador 'Faltan N' sí rueda (es absoluto, no filtrado).
+   seq: Mismo que 'escribir en el input': el estado visible se re-deriva y Motion resuelve. Prohibido: cerrar teclado, cambiar el valor del input, scrollear, mostrar toast 'X agregó…'. Si el remoto tilda una fila visible en el filtro, hace la Fase A + baja a la sección atenuada 'Comprados que coinciden' (o desaparece si esa sección no aplica). Un cambio remoto y una tecla en el mismo frame se resuelven en un solo render (Motion retargetea).
+   apis: Igual; `layoutDependency={orderKey}` en las filas para que un snapshot que no cambia orden ni visibilidad no dispare mediciones.
+
+## Borrar ítem (desde el sheet Editar ítem)
+   moves: Primero se cierra el sheet; recién después la fila se desvanece y las de abajo suben. Contador rueda. Toast 'Borrado · Deshacer' opcional.
+   seq: t=0: press en 'Borrar'; sheet exit (translateY 100 %, dur.slow/ease.in) + backdrop fade (dur.base). t=onExitComplete (≈320 ms): estado → borrado; la fila exit {opacity:0, scale:0.98} dur.fast, popLayout; las de abajo suben con spring.move. t=+150: contador rueda; toast entra si hay undo. Secuencial y no en paralelo a propósito: si la fila se fuera mientras el sheet la tapa, el usuario no la vería irse y sentiría un salto.
+   apis: `AnimatePresence` del sheet con `onExitComplete` que despacha el borrado; fila con `exit`; toast igual que arriba.
+
+## Abrir / cerrar sheet inferior (<dialog>: ¿Quién sos?, Editar ítem, menú ⋯)
+   moves: El panel sube desde el borde inferior; el backdrop se oscurece; el contenido del panel NO se anima por separado (entra con el panel). Al cerrar, baja y el backdrop se aclara. Nada detrás se mueve ni se escala (nada de 'la página se achica' tipo iOS: es una PWA con teclado, y ese efecto compite con el teclado).
+   seq: Abrir: `dialog.showModal()` en el mismo tick; panel `initial={{y:'100%'}} animate={{y:0}}` con spring.sheet; backdrop opacity 0→1 dur.base/ease.std, ambos arrancan juntos. Foco al primer control cuando termina la entrada (onAnimationComplete), para que el focus ring no aparezca en un elemento en movimiento. Cerrar (botón, Escape, tap en backdrop): panel `exit={{y:'100%'}}` dur.slow/ease.in (salida un poco más rápida que la entrada), backdrop 1→0 dur.base; `dialog.close()` recién en `onExitComplete`. Si el sheet contiene un input y se abre el teclado, el panel se acomoda por CSS (bottom: env(keyboard-inset) / visualViewport) sin animación de layout (no usar `layout` en el sheet). Alternativa sin JS: `@starting-style` + `transition-behavior: allow-discrete` en el dialog (Chrome 117+, Safari 17.5+); la recomendación es AnimatePresence por consistencia con el resto y por el control del cierre.
+   apis: `AnimatePresence` + `motion.div` dentro del `<dialog>` (el dialog en sí no se anima); `onExitComplete` → `dialog.close()`; backdrop como div propio (el `::backdrop` no es animable con Motion). `layoutRoot` NO hace falta salvo que se usen animaciones layout dentro del sheet (evitar).
+
+## Toast (Deshacer, errores, confirmaciones)
+   moves: Entra desde abajo, por encima de la barra de input, con y:16→0 + opacity; sale con opacity + y:8. Un solo toast a la vez: si llega otro, el anterior sale (dur.fast) y el nuevo entra cuando terminó (mode='wait'). El texto del toast no cambia mientras está visible.
+   seq: Entrar: spring.sheet en y, opacity dur.fast, juntos. Permanece TOAST_MS (7 s). Salir: dur.slow/ease.in. Al presionar 'Deshacer': press feedback (dur.instant) y salida inmediata (dur.fast). Sin barra de progreso (ruido; y con reduced motion sería un elemento animado permanente). Pausa del timer mientras el dedo está sobre el toast (onTapStart/onTapCancel).
+   apis: `AnimatePresence mode="wait"`; `motion.div initial animate exit`; `whileTap` en el botón; `onTapStart`/`onTapCancel` para pausar timer.
+
+## Pastilla de estado (En vivo / Sin conexión / Sincronizando…)
+   moves: Solo cambia el contenido: crossfade del texto + punto de color (dur.fast) y el ancho de la pastilla se anima suavemente (dur.base) para que no 'salte' el header. El punto de 'Sincronizando…' gira (CSS, lineal, 1 s) — con reduced motion no gira: se muestran '…' estáticos.
+   seq: Cambio de estado: texto viejo opacity 1→0 (dur.fast) simultáneo con nuevo 0→1 (mode='popLayout' para que el ancho se mida ya con el nuevo); color de fondo/borde tween dur.base/ease.std; ancho con `layout` en la pastilla (dur.base). Anti-flicker: 'Sincronizando…' solo aparece si el estado dura > SYNC_SHOW_MIN (400 ms) y una vez visible se queda ≥ SYNC_HOLD_MIN (800 ms). 'Sin conexión' aparece sin demora. Nunca hace 'pulso' para llamar la atención.
+   apis: `motion.span layout` para el ancho; `AnimatePresence mode="popLayout" initial={false}` para el texto; spinner en CSS `@keyframes` con `@media (prefers-reduced-motion: reduce){ animation: none }`.
+
+## Contador 'Faltan N'
+   moves: Solo el número: el viejo sube 6 px y se desvanece, el nuevo entra desde 6 px abajo (N baja → los dígitos 'suben'; N sube → 'bajan', dirección semántica). La palabra 'Faltan' no se mueve; el ancho del número se reserva con `font-variant-numeric: tabular-nums` para que nada se recoloque.
+   seq: Cambio N→N': viejo `exit={{y: dir*-6, opacity:0}}`, nuevo `initial={{y: dir*6, opacity:0}} animate={{y:0, opacity:1}}`, ambos dur.fast, arrancan juntos (popLayout). Siempre con +60 ms respecto al movimiento de fila que lo causó (el contador confirma, no anticipa). Al llegar a 0: el contador cede el lugar al estado 'Ya está' (ver siguiente).
+   apis: `AnimatePresence mode="popLayout" initial={false}` keyed por N; `custom={dir}` para dirección; CSS `tabular-nums`.
+
+## Pulso de 'Ya está' (última pendiente comprada)
+   moves: Cuando la última pendiente termina de bajar, en el lugar vacío de Pendientes aparece el estado 'Ya está' (texto + check grande): fade + scale 0.96→1 y UN solo pulso suave (el check hace scale 1→1.06→1 en 600 ms). Nunca en loop. Al agregar algo nuevo, 'Ya está' se desvanece (dur.fast) y la fila nueva entra normal.
+   seq: t=700 (fin del hold): fila baja (spring.settle). t=onLayoutAnimationComplete de esa fila (≈+360 ms): 'Ya está' entra {opacity 0→1, scale 0.96→1} con spring.snappy; t=+150: pulso único del check (tween 0.6 s, ease.std). Contador 'Faltan 0' rueda y luego se reemplaza por 'Ya está' en el header (crossfade dur.fast). Con filtro activo NO se muestra 'Ya está' (el vacío por filtro dice 'Nada coincide', sin pulso, solo fade).
+   apis: `AnimatePresence` para el bloque vacío; `motion.svg animate={{scale:[1,1.06,1]}} transition={{duration:0.6, times:[0,0.4,1]}}`; se gatilla con `onLayoutAnimationComplete` de la fila protagonista o, más simple, con un delay = visualDuration de spring.settle.
+
+[feedback]
+ REGLA MADRE: todo gesto obtiene una respuesta LOCAL en ≤ 80 ms en el mismo elemento, antes de que cualquier otra cosa se mueva. Como los movimientos de lista son consecuencia, el ojo siempre parte de un lugar que ya reaccionó.
+
+BOTONES (Agregar, Vaciar, Sí/No, Deshacer, ⋯, cerrar sheet): 
+- press: `whileTap={{scale:0.96}}` con spring.snappy + tint de fondo vía CSS `:active` (dur.instant) — la escala sola en un botón chico casi no se ve, el tint es lo que confirma. En filas y áreas grandes NO se usa scale del contenedor completo (deforma texto), solo tint + scale 0.98 en el fondo.
+- Los tap gestures de Motion son accesibles por teclado (Enter dispara whileTap/onTap — https://motion.dev/docs/react-gestures) y requieren `touch-action` correcto en móviles: en las filas dejar `touch-action: pan-y` para no romper el scroll vertical.
+- disabled: opacity 0.4, sin whileTap, cursor default; el cambio a/desde disabled con transición de opacity dur.fast (no aparece de golpe).
+- loading (p.ej. 'Sí' de Vaciar mientras escribe en Firestore offline es instantáneo, pero por si acaso): la etiqueta hace crossfade a un spinner de 16 px manteniendo `min-width` del botón; nunca cambia de tamaño. Con reduced motion: spinner estático 'Guardando…'.
+- foco por teclado: `:focus-visible` ring de 2 px que aparece con transición dur.fast (no parpadea al navegar).
+
+INPUT (filtro/alta):
+- foco: borde + ring en dur.fast; el ícono izquierdo cambia de 'lupa' a '+' cuando hay texto (crossfade dur.fast) — le dice al usuario 'esto ahora agrega'; el botón Agregar/Enter se habilita con opacity 0.4→1.
+- tipeo: el input NUNCA se mueve, se redimensiona ni cambia de fondo mientras la lista se reordena; el único cambio en la barra es el × de limpiar (entra con scale 0.8→1) y el rótulo del botón. Micro-caption debajo o dentro del placeholder: 'N coinciden' con rodillo de dígitos (dur.fast) — es la ancla que conecta lo que tipeás con lo que ves moverse.
+- error (vacío al hacer Enter, texto demasiado largo, duplicado): NO shake (bajo reduced motion sería inaccesible y en móvil se confunde con lag). En cambio: borde a color de error dur.fast + helper text que entra con fade y, para duplicado, la fila existente recibe el tint dur.linger + scrollIntoView. El input conserva el foco.
+- éxito (Enter): el texto se borra en el mismo frame; no hay 'flash verde': la confirmación es la fila que llega con tint y el contador que rueda.
+
+FILAS:
+- press: fondo tint (`:active`, dur.instant) + scale 0.98 del fondo (no del texto). Long-press abre 'Editar ítem' (sheet); al pasar el umbral de long-press, el tint sube un paso y se dispara `navigator.vibrate?.(10)` (silencioso en iOS, ok).
+- estado `hold` (tachada esperando): checkbox lleno, tachado dibujado, texto muted, y un `data-state=\"hold\"` que además baja la opacidad de la fila a 0.85 — el usuario ve que 'está por irse' y sabe que puede destocarla.
+- fila que viaja: opacidad 0.6 (destino Comprados) o 1 (destino Pendientes) se aplica DURANTE el viaje, no al llegar, así la fila 'ya es' del grupo destino mientras se mueve.
+- fila nueva/duplicada: tint accent 12 % → 0 en 800 ms (local) / 8 % (remota).
+- comprados bajo filtro: opacity 0.55 permanente; al destildar sube a 1 antes de moverse.
+
+CHIPS DE HISTORIAL:
+- `whileTap={{scale:0.95}}` spring.snappy + tint; al tocar, el chip 'se convierte' en fila: el chip sale con opacity+scale 0.9 (dur.fast) y la fila entra con la coreografía de Agregar. Con muchos chips, no se animan por layout entre sí (solo entrada/salida por opacity) para no distraer del área de filas.
+
+CÓMO SE COMBINAN CON EL MOVIMIENTO PARA NO PERDER EL HILO:
+1) Orden fijo: feedback local (0–80 ms) → cambio de contenido en anclas fijas (input, botones) → movimiento de filas (150–360 ms) → confirmación en contadores (+60 ms). El ojo sigue esa cadena siempre igual.
+2) Un protagonista por gesto (la fila tocada / la fila nueva) va apenas más lento o llega apenas después que el coro; el coro nunca hace stagger.
+3) Las anclas (header, contador, barra, cabecera Comprados) no se mueven nunca; los sheets tapan pero no desplazan.
+4) Nada se mueve mientras un elemento del que dependés (input, botón) está cambiando de tamaño: se reservan anchos (tabular-nums, min-width) para que solo cambie el contenido.
+
+[reducedMotion]
+ Se respeta `prefers-reduced-motion: reduce` en tres capas, y además se ofrece un toggle 'Menos animaciones' en el menú ⋯ que fuerza el modo (algunas personas no lo tienen configurado en el SO):
+
+1) Motion: `<MotionConfig reducedMotion={userPref ?? 'user'}>` en la raíz. Según la doc (https://motion.dev/docs/react-accessibility) con 'user' Motion desactiva automáticamente las animaciones de transform y de layout y conserva opacity/color. `useReducedMotion()` se usa donde hace falta reemplazar (no solo apagar) — p.ej. cambiar `y:8` por nada pero mantener el fade, y desactivar el pulso de 'Ya está' y el rodillo del contador (que pasa a crossfade).
+
+2) CSS: `@media (prefers-reduced-motion: reduce)` apaga el spinner de la pastilla, el `scroll-behavior: smooth`, y cualquier keyframe.
+
+3) Coreografías equivalentes (no 'sin animación'): 
+- Filtrado / tildar / destildar / vaciar / undo / remoto: las filas NO viajan; se aplican crossfades cortos (dur.fast, opacity) de la fila en su lugar viejo y en el nuevo — Motion lo hace solo al desactivar layout; nosotros aseguramos que `exit`/`initial` conserven `opacity` para que se vea que algo se fue/llegó. El feedback en el lugar (checkbox lleno, tachado dibujado con scaleX → se reemplaza por aparición directa, texto muted, tint de la fila nueva) se mantiene íntegro: es información.
+- El hold de 700 ms se mantiene (es comportamiento, no motion).
+- Sheets: sin translateY; aparecen con fade dur.base y el backdrop igual. Toast: solo fade.
+- Contador: crossfade sin rodillo. Pastilla: crossfade, sin girar.
+- 'Ya está': fade, sin pulso.
+- Nunca se usa reduced motion como excusa para acortar a 0: dur.fast (150 ms) de opacity sigue existiendo, porque un cambio instantáneo de una lista larga es más desorientador que un fade.
+- scrollIntoView con `behavior:'auto'`.
+
+Y una excepción documentada: `MOTION_SCALE=0` (tests/E2E) es distinto de reduced motion — es apagado total. Reduced motion no lo usa.
+
+[performanceRules]
+ - Solo `transform` y `opacity` en cualquier cosa que se mueva. Prohibido animar height/width/top/left/margin/padding, box-shadow (excepto la corrección automática de Motion en layout) y `backdrop-filter`. Las 'colapsadas' se logran con `AnimatePresence mode="popLayout"` (la fila sale del flujo con position:absolute inyectada por Motion y las demás reflowen con transform).
+ - Filas con `layout="position"` (no `layout` a secas): las filas no cambian de tamaño, solo de posición; evita el scale-correction de texto y reduce cálculo. Si en el futuro una fila cambia de alto (edición inline), aplicar `layout` a la fila y `layout="position"` a sus hijos de texto para evitar distorsión (recomendación de la doc de layout).
+ - `layoutScroll` en el contenedor scrolleable de la lista; sin él, Motion mide mal cuando la lista está scrolleada. La barra de input y la cabecera 'Comprados' son `position: fixed/sticky` sin `layout` ni hijos con `layout` — si alguna vez lo tienen, necesitan `layoutRoot`. Mejor: no animar layout dentro de nada fijo.
+ - `layoutDependency={orderKey}` en cada fila (p.ej. hash del array de ids visibles): un snapshot remoto que no altera el orden ni la visibilidad no dispara mediciones. Sin esto, cada re-render de N filas hace N getBoundingClientRect.
+ - Cap de simultaneidad: cuando un cambio afecta > 40 filas (borrar filtro con lista larga, vaciar 60 comprados), las entradas/salidas se degradan a opacity sola (sin y/scale) y sin stagger. Las layout de posición se mantienen (Motion las resuelve en un solo batch lectura/escritura). Lista familiar típica: 20–80 ítems; con >150 evaluar virtualización, que es incompatible con layout animations — mejor pagar el precio hasta ~150 y no virtualizar.
+ - No setear `will-change` a mano en las filas: Motion lo gestiona durante la animación (y `will-change` permanente en 80 filas crea 80 capas y hace peor el scroll en Android de gama media). Solo se permite `will-change: transform` estático en el sheet y el toast (pocos nodos, aparecen seguido).
+ - Evitar layout thrash propio: nunca leer `getBoundingClientRect`/`offsetHeight` en handlers de tipeo o en efectos que corren junto con el render de la lista; si hace falta medir (scrollIntoView condicional), hacerlo en `onAnimationComplete` o `requestAnimationFrame` después de que Motion terminó de medir.
+ - Filtrado en vivo: derivar `visibleItems` con `useMemo` y una comparación normalizada precomputada (sin acentos, minúsculas) por ítem, para que el costo por tecla sea el render + Motion, no la búsqueda. No debounce en el filtro (se sentiría lag); si en dispositivos lentos el render de una tecla supera 16 ms, la degradación correcta es el cap de simultaneidad, no un debounce.
+ - Teclado móvil (iOS Safari especialmente): al abrir/cerrar el teclado cambia el visual viewport; el layout de la barra fija se resuelve con CSS (100dvh / visualViewport) y NO debe disparar layout animations (por eso `layoutDependency` no incluye nada del viewport). Además `overflow-anchor` por defecto para que el navegador ancle el scroll cuando la lista cambia de alto encima del viewport.
+ - `touch-action: pan-y` en filas y chips (necesario para gestos tap de Motion sin romper el scroll), `touch-action: manipulation` en botones (elimina el retardo de doble-tap).
+ - Bundle: Motion for React con layout animations requiere las features `domMax` — usar `LazyMotion features={domMax}` + componentes `m.*` en lugar de `motion.*` para no cargar todo por adelantado; el módulo de tokens y el reducer no dependen de Motion (se pueden testear sin cargarlo).
+ - Contenedores: no usar `content-visibility: auto` ni `contain: paint` en filas (rompen la medición de layout y recortan el checkbox al escalar). Sí `contain: layout` en el contenedor de lista si se comprueba que no altera las mediciones.
+ - Presupuesto: cualquier coreografía debe correr a 60 fps en un Android de gama media (p.ej. Moto G) con 80 filas; medir con Performance panel: el frame de un keystroke con reflow debe quedar < 12 ms de main thread. Si no, primero bajar el cap de simultaneidad, después quitar el `scale` de las salidas.
+
+[testingNotes]
+ - Separar dominio de motion: el reducer/hook de lista (estados pending → hold → bought, orden, undo, filtro) es puro y toma `now()` y `HOLD_MS`/`TOAST_MS` inyectados. Se testea con Vitest y fake timers sin Motion ni DOM: 'tildar → estado hold; a los 699 ms sigue en pendientes; a los 700 ms está en comprados al tope; segundo tap antes de 700 ms revierte a pending y no mueve'.
+ - Un solo módulo `motion/tokens.ts` exporta los tokens ya multiplicados por `MOTION_SCALE` (leído de `import.meta.env.VITE_MOTION_SCALE`, override por `?motion=0` en la URL guardado en localStorage). Con 0 todas las duraciones/visualDuration son 0 y los delays también. Los componentes NUNCA escriben números de tiempo inline; así el test no depende de coreografías.
+ - Unit/component tests (Vitest + @testing-library/preact, jsdom): `vi.mock('motion/react')` con un stub que renderiza los `motion.*`/`m.*` como elementos planos y `AnimatePresence` como fragmento (jsdom no mide layout; Motion en jsdom no aporta nada y puede tirar warnings). Se afirma sobre semántica: orden del DOM (`getAllByRole('listitem').map(text)`), `data-state` de la fila, `aria-checked`, texto del contador, presencia del toast. Nunca sobre estilos transform.
+ - E2E (Playwright, Chromium móvil + WebKit): arrancar con `VITE_MOTION_SCALE=0` y además `page.emulateMedia({ reducedMotion: 'reduce' })` (esto verifica que `MotionConfig reducedMotion='user'` responde al SO). Todas las aserciones con auto-wait (`expect(locator).toHaveText/​toHaveAttribute`, `expect.poll`), jamás `waitForTimeout`. Para el hold de 700 ms usar `page.clock.install()` + `runFor(700)` (Playwright clock) o inyectar `HOLD_MS=0` vía query en el entorno de test — mejor lo primero para probar el hold real.
+ - Puntos de sincronización explícitos para E2E con motion real: la fila expone `data-animating="true"` entre `onLayoutAnimationStart` y `onLayoutAnimationComplete`, y el sheet/toast entre `onAnimationStart` y `onExitComplete`. Un único spec 'motion-smoke' corre con MOTION_SCALE=1 y afirma que el atributo pasa por true→false y que el orden final es el esperado; corre solo en Chromium para no duplicar flakiness.
+ - Snapshots visuales solo en estados finales, con motion en 0 y `toHaveScreenshot({ animations: 'disabled' })` (Playwright termina animaciones CSS/WAAPI, pero las layout animations las maneja Motion en JS — de ahí que el escalado a 0 sea obligatorio, no opcional).
+ - Reduced motion en tests: un spec E2E con `reducedMotion:'reduce'` y MOTION_SCALE=1 verifica que las filas NO tienen `transform` distinto de none durante un filtrado (leer `getComputedStyle(row).transform` en `expect.poll` justo después del keystroke) y que sí cambian de opacity — asegura que el modo reducido es 'crossfade', no 'apagado'.
+ - Firestore en tests: emulador o repo en memoria con un `emitRemote(diff)` para simular cambios de otro familiar; se testea 'remoto mientras escribo': el input conserva valor y foco, la lista visible solo cambia si el ítem coincide con el filtro, el contador cambia igual.
+ - Regla de flakiness: si un test necesita un tiempo mágico, o el tiempo es un token (entonces se pone en 0) o es una constante de dominio (entonces se usa fake clock). No hay tercera categoría.
+
+[risks]
+ - Preact + Motion for React: Motion está escrito para React (hooks, contextos, `forwardRef`, `useId`); con Preact hay que aliasar `react`/`react-dom` → `preact/compat` en Vite. Históricamente funciona, pero `mode="popLayout"` (posiciona absoluto al hijo saliente y necesita refs), `LayoutGroup` y las mediciones en `useLayoutEffect` son las partes más sensibles a diferencias de compat. Hacer un spike de 1 día: filtrado + tildar con popLayout en Preact real en un Android y un iPhone antes de comprometer el diseño. Plan B si falla: (a) React 18 en vez de Preact (costo de bundle ~30 kB), (b) FLIP manual con `animate()` de la lib vanilla `motion` (misma física, sin AnimatePresence — hay que escribir el manejo de salidas), (c) CSS View Transitions (`document.startViewTransition` + `view-transition-name` por fila) — muy simple, pero NO interrumpible: con tipeo continuo se encadenan transiciones y se siente pesado; sirve para tildar/vaciar, no para el filtro en vivo.
+ - Bundle: layout animations requieren `domMax` de Motion (~ 30 kB gz aprox. según versión) — más que `domAnimation`. Aceptable para una PWA cacheada, pero conviene `LazyMotion` + `m.*` y medir con `vite build --report`. Verificar la cifra en la doc de la versión que instalen (https://motion.dev/docs/react-motion-component).
+ - popLayout con scroll: la fila saliente se posiciona absoluta y si el contenedor tiene `overflow` + padding puede aparecer 'corrida' un frame. Motion trae `root` prop en AnimatePresence para dónde inyecta estilos; probar en el contenedor real y, si molesta, hacer la salida con `mode="sync"` + `exit` de opacity y aceptar que las hermanas suben cuando termina (150 ms de demora).
+ - iOS Safari + teclado: al abrir el teclado cambia el visual viewport y a veces Safari re-layouta; si algún componente con `layout` re-renderiza en ese momento, se ven filas 'volando'. Mitigación: `layoutDependency` estricto y no tener `layout` en la barra fija. Probar específicamente 'foco en input → teclado abre → llega snapshot remoto'.
+ - Ráfagas de ticks + snapshots remotos pueden producir varias animaciones layout solapadas; Motion las re-targetea bien, pero el `isMover` (spring.settle vs spring.move) puede quedar mal asignado si dos filas cruzan al mismo tiempo. Si complica, usar spring.move para todas y renunciar a la distinción protagonista/coro (pérdida menor).
+ - El hold de 700 ms es un compromiso: suficiente para destildar por error, pero con ráfagas de compras rápidas la lista 'respira' continuamente. Si en uso real molesta, la solución NO es acortar el spring sino agrupar: si hay más de 3 filas en hold, todas vencen juntas cuando vence la primera pendiente (batch), y viajan en un solo bloque.
+ - Cambios remotos animados pueden distraer si un familiar está cargando 20 ítems seguidos: cada uno entra con fade+y. El cap de simultaneidad no ayuda (llegan de a uno). Si pasa, considerar coalescer snapshots remotos en ventanas de 300 ms (solo para render, no para persistencia).
+ - Testing con Playwright y `page.clock`: los timers de Motion (rAF) también quedan bajo el reloj falso si se instala antes de la carga; instalar `clock` DESPUÉS de que la página cargó y solo avanzar timers (`runFor`) para el hold. Documentarlo en el helper de tests para no perder horas.
+ - Reduced motion 'user' de MotionConfig apaga transform pero NO opacity; si alguien deja un `exit` sin opacity, la fila desaparece de golpe en modo reducido. Lint interno / helper `rowExit()` que siempre incluye opacity para evitar la regresión.

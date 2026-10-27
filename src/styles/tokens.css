@@ -1,0 +1,162 @@
+/*
+  Tokens de diseño · "Papel de almacén" con acento cuero.
+  Fuente de verdad de los colores: docs/diseno/paleta.html → "Copiar tokens".
+  Regla: los componentes SOLO usan estas variables. Ningún color, tamaño ni tiempo suelto.
+*/
+
+:root {
+  /* ---- Paleta · claro ---- */
+  --paper: #F6F1E7;         /* fondo de la pantalla */
+  --surface: #FFFDF8;       /* hojas, chips, casillas */
+  --ink: #1B1A17;           /* texto principal */
+  --muted: #6B655A;         /* meta, placeholders, tachados */
+  --line: #DDD6C6;          /* renglones (líneas finas) */
+  --line-strong: #C7BEA9;   /* bordes de pastillas, chips, input, y la regla que separa súper */
+  /* jerarquía de líneas (D16): la que separa ÍTEMS es más tenue que la que separa SÚPER, si no las dos se leen
+     igual y un borde de sección parece un renglón más. Derivada: sigue sola al tema claro/oscuro. */
+  --line-soft: color-mix(in srgb, var(--line) 55%, var(--paper));
+  --accent: #7B4A2D;        /* cuero · rellenos: botón, casilla tildada, CTA */
+  --accent-ink: #6E4228;    /* cuero como texto: Vaciar, links, chips elegidos */
+  --on-accent: #FFFFFF;     /* texto sobre acento */
+  --ok: #2A7043;            /* En vivo */
+  --warn: #946012;          /* pendiente de sincronizar, Sincronizando… */
+  --danger: #A63A2A;        /* solo Borrar (texto), nunca relleno grande */
+  --strike: #6B655A;        /* línea del tachado */
+  --p1: #7B4A2D; --p2: #2A6F8A; --p3: #5B7A2E; --p4: #B8860B;   /* personas (siempre con nombre al lado) */
+  --toast: #1B1A17; --toast-ink: #F6F1E7;
+  --tint: color-mix(in srgb, var(--accent) 12%, transparent);     /* resalte de fila nueva / duplicada / coincidencia */
+  --tint-remote: color-mix(in srgb, var(--accent) 8%, transparent);
+  --scrim: color-mix(in srgb, var(--ink) 40%, transparent);
+  --focus-ring: var(--accent);
+  --accent-pressed: color-mix(in srgb, var(--accent) 85%, var(--ink));   /* botón de acento presionado */
+  --danger-line: color-mix(in srgb, var(--danger) 45%, transparent);
+  --danger-tint: color-mix(in srgb, var(--danger) 10%, transparent);
+  --toast-tint: color-mix(in srgb, var(--toast-ink) 14%, transparent);   /* botón del toast presionado */
+  --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, .18);
+  --shadow-toast: 0 6px 24px rgba(0, 0, 0, .22);
+
+  /* ---- Tipografía ---- */
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;  /* el link en el menú */
+  --display-fvs: "SOFT" 100, "WONK" 0, "opsz" 32;
+  /* escala fluida (rem para respetar el zoom del sistema; clamp para pantallas chicas/grandes) */
+  --fs-brand: clamp(1.25rem, 1.05rem + 0.9vw, 1.5rem);      /* "Heladera" */
+  --fs-counter: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);    /* "Faltan 7" */
+  --fs-item: clamp(1.0625rem, 1rem + 0.3vw, 1.125rem);      /* texto del ítem ≥ 17px */
+  --fs-body: 1rem;                                          /* inputs ≥ 16px: iOS no hace zoom */
+  --fs-meta: 0.78rem;                                       /* "Papá · hace 2 h" (≥ 12.5px) */
+  --fs-label: 0.72rem;                                      /* rótulos en versalitas */
+  --fs-seccion: clamp(0.9rem, 0.83rem + 0.35vw, 1.05rem);   /* título de súper: se lee de lejos, en el teléfono */
+  --fs-seccion-n: var(--fs-item);                           /* su número: del tamaño de un ítem, no de una meta */
+  --fs-sheet-title: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  --lh-tight: 1.15; --lh-body: 1.4;
+  --tracking-label: 0.06em;
+
+  /* ---- Espaciado (escala de 4px, en rem) ---- */
+  --s-1: 0.25rem; --s-2: 0.5rem; --s-3: 0.75rem; --s-4: 1rem; --s-5: 1.25rem; --s-6: 1.5rem; --s-8: 2rem; --s-10: 2.5rem; --s-12: 3rem;
+  --gutter: clamp(1rem, 4vw, 1.5rem);        /* margen lateral: crece un poco en pantallas anchas */
+
+  /* ---- Tamaños ---- */
+  --target: 2.75rem;         /* 44px: mínimo tocable */
+  --row-h: 3.5rem;           /* 56px: fila de la lista (Motion asume filas de alto fijo) */
+  --header-h: 3.5rem;
+  --donebar-h: 3rem;         /* cabecera "Comprados · Vaciar" fija */
+  --inputbar-h: 4.5rem;      /* barra de agregar (sin safe-area) */
+  --check-size: 1.625rem;    /* 26px */
+  --avatar-size: 1.875rem;
+  --content-max: 35rem;      /* 560px: en desktop se agrega aire, no columnas */
+  --sheet-max: 35rem;
+  --dialogo-max: 24rem;      /* 384px: la tarjeta de confirmar, más angosta que una hoja */
+  --btn-h: 3rem;             /* 48px: botón primario de sheets/home */
+  --icon-size: 1.5rem;       /* 24px: íconos inline del menú */
+  --icon-sm: 1.25rem;        /* 20px: chevron, ×, íconos de fila */
+  --icon-xs: 1rem;           /* 16px: flecha del toggle de Comprados */
+  --dot-sync: 0.5rem;        /* puntito ámbar "pendiente de sincronizar" */
+  --illus-size: 4rem;        /* dibujo del estado vacío */
+  --text-max: 28rem;         /* ancho máximo de un párrafo (estado vacío) */
+  --input-min-w: 7rem;       /* el input nunca baja de esto aunque el botón sea largo */
+  --btn-agregar-w: clamp(7rem, 40%, 12rem);   /* ancho FIJO del botón Agregar: el input no cambia de tamaño al tipear */
+  --handle-w: 2.25rem; --handle-h: 0.25rem;   /* asa del bottom sheet */
+  --chip-h: var(--target);   /* chips de persona en "¿Quién sos?" */
+  --dot-size: 0.75rem;       /* puntito de color de persona junto al nombre */
+  --field-min-w: 12rem;      /* ancho mínimo de un campo en grilla (Home) */
+
+  /* ---- Radios ---- */
+  --r-sm: 0.375rem; --r-md: 0.75rem; --r-lg: 1rem; --r-sheet: 1.375rem; --r-pill: 999px;
+
+  /* ---- Bordes ---- */
+  --bw-hair: 1px; --bw-check: 2px; --bw-field: 2px; --bw-strike: 1.5px;
+  --bw-focus: 3px; --focus-offset: 2px;   /* anillo de foco (base.css y casillas) */
+  --scl-row: 0.98;           /* press de fila: escala del fondo (mismo valor que scl.row en motion/tokens.ts) */
+
+  /* ---- Opacidades (deben coincidir con src/motion/tokens.ts → opacity.*) ---- */
+  --op-dim: 0.55; --op-hold: 0.85; --op-disabled: 0.4;
+
+  /* ---- Capas (los sheets viven en el top layer del <dialog> y no participan) ---- */
+  --z-toast: 10; --z-header: 20; --z-donebar: 30; --z-inputbar: 40;
+  --z-medidor: 90;           /* overlay de diagnóstico (?fps): por encima de todo, para poder verlo */
+  --z-vuelo: 1;              /* fila que vuela al/desde el bolsillo: por encima de las filas que cruza (dentro de la lista) */
+
+  /* ---- Teclado virtual: alto tapado por el teclado (lo escribe useVisualViewport; 0 si el viewport se achica solo) ---- */
+  --kb-inset: 0px;
+
+  /* ---- Safe areas ---- */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ---- Duraciones CSS (las de Motion viven en src/motion/tokens.ts; deben coincidir) ---- */
+  /* 25% más cortas que el diseño original (D21): medido en el teléfono, no perdíamos frames, sobraba duración.
+     Tienen que coincidir con las de src/motion/tokens.ts. */
+  --dur-instant: 60ms; --dur-fast: 110ms; --dur-base: 170ms; --dur-slow: 240ms; --dur-linger: 600ms;
+  --dur-spin: 1200ms;        /* giro del punto "Sincronizando…" (se apaga con reduced motion) */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1); --ease-in: cubic-bezier(0.4, 0, 1, 1); --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* ---- Paleta · oscuro ("pizarra de noche") ---- */
+    --paper: #1C1D1A; --surface: #262723; --ink: #EDE7DA; --muted: #A39C8E; --line: #35362F; --line-strong: #4A4B43;
+    --accent: #C48A5A; --accent-ink: #CD9A70; --on-accent: #1B1A17; --ok: #6FB98A; --warn: #E0A44A; --danger: #E9836F; --strike: #A39C8E;
+    --p1: #C48A5A; --p2: #5FA3C2; --p3: #8FB05A; --p4: #D9B052;
+    --toast: #EDE7DA; --toast-ink: #1B1A17;
+    --tint: color-mix(in srgb, var(--accent) 16%, transparent);
+    --tint-remote: color-mix(in srgb, var(--accent) 10%, transparent);
+    --scrim: color-mix(in srgb, #000 55%, transparent);
+    --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, .5);
+    --shadow-toast: 0 6px 24px rgba(0, 0, 0, .55);
+    --accent-pressed: color-mix(in srgb, var(--accent) 85%, var(--ink));
+    --danger-line: color-mix(in srgb, var(--danger) 45%, transparent);
+    --danger-tint: color-mix(in srgb, var(--danger) 12%, transparent);
+    --toast-tint: color-mix(in srgb, var(--toast-ink) 14%, transparent);
+  }
+}
+:root[data-theme="dark"] {
+  --accent-pressed: color-mix(in srgb, var(--accent) 85%, var(--ink));
+  --danger-line: color-mix(in srgb, var(--danger) 45%, transparent);
+  --danger-tint: color-mix(in srgb, var(--danger) 12%, transparent);
+  --toast-tint: color-mix(in srgb, var(--toast-ink) 14%, transparent);
+  --paper: #1C1D1A; --surface: #262723; --ink: #EDE7DA; --muted: #A39C8E; --line: #35362F; --line-strong: #4A4B43;
+  --accent: #C48A5A; --accent-ink: #CD9A70; --on-accent: #1B1A17; --ok: #6FB98A; --warn: #E0A44A; --danger: #E9836F; --strike: #A39C8E;
+  --p1: #C48A5A; --p2: #5FA3C2; --p3: #8FB05A; --p4: #D9B052;
+  --toast: #EDE7DA; --toast-ink: #1B1A17;
+  --tint: color-mix(in srgb, var(--accent) 16%, transparent);
+  --tint-remote: color-mix(in srgb, var(--accent) 10%, transparent);
+  --scrim: color-mix(in srgb, #000 55%, transparent);
+  --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, .5);
+  --shadow-toast: 0 6px 24px rgba(0, 0, 0, .55);
+}
+
+/* Reduced motion: las duraciones CSS colapsan; Motion lo hace por MotionConfig reducedMotion="user". */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-instant: 0ms; --dur-fast: 100ms; --dur-base: 100ms; --dur-slow: 100ms; --dur-linger: 300ms; }
+}
+
+/* Teléfono apaisado (alto corto): las anclas fijas se achican para que quede lugar a la lista. */
+@media (orientation: landscape) and (max-height: 30rem) {
+  :root { --header-h: 3rem; --donebar-h: 2.75rem; --inputbar-h: 3.5rem; }
+}

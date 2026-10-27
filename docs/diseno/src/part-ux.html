@@ -1,0 +1,136 @@
+<section id="ux">
+  <div class="prose">
+  <h2>9. UX y diseño visual</h2>
+  <p><strong>Filosofía: la hoja de papel en la heladera.</strong> Un papel imantado no tiene login, ni categorías, ni “crear lista”: tiene un renglón vacío y una birome atada con un piolín. La app tiene que ganarle al papel en exactamente tres cosas — se ve desde el súper, se tilda con un dedo, todos ven lo mismo — y empatarle en todo lo demás: se abre lista para escribir, no pregunta nada, no explica nada. Del panel salió una base “mínima” muy afinada y le injertamos lo mejor de la propuesta “familiar”: la hoja de compartir, la identidad por persona y las sugerencias de “lo de siempre”.</p>
+  <h3>Una pantalla, cinco franjas</h3>
+  <ol>
+    <li><strong>Header fijo</strong> (solo información, fuera del pulgar): nombre de la app · pastilla de estado (● En vivo / ○ Sin conexión / ◐ Sincronizando…) · chip con tu inicial (tocable: “¿Quién sos?”) · botón <strong>⋯</strong>.</li>
+    <li><strong>Contador</strong> grande: “Faltan 7”. Es lo primero que lee mamá al abrir.</li>
+    <li><strong>Lista de pendientes</strong>, cronológica: lo viejo arriba, lo nuevo abajo pegado a la barra de agregar (como se escribe en un papel, y donde estás mirando).</li>
+    <li><strong>Cabecera “Comprados (4) · Vaciar”</strong> fija justo arriba de la barra, en zona del pulgar: lo último que hace mamá al salir del súper no exige scroll. Tocarla despliega los comprados.</li>
+    <li><strong>Barra de agregar / buscar</strong> fija abajo, respeta <code>safe-area-inset-bottom</code> y sube con el teclado (<code>visualViewport</code>): campo “Anotá o buscá…” + botón que dice lo que va a pasar (“Agregar «yogur»”).</li>
+  </ol>
+  <p>Todo lo secundario vive en <em>bottom sheets</em> sobre la lista: ¿Quién sos? · Editar ítem · el menú ⋯ con cuatro filas (Mandar la lista por WhatsApp · Sumar a alguien · Cambiar mi nombre · Exportar). No hay más pantallas. Lo que es documentación (QR, pegatina, agregar al inicio) está en el README, no en la app.</p>
+  </div>
+
+  <h3 class="prose">Wireframes</h3>
+  __WIRE__
+
+  <div class="prose">
+  <h3>Flujos clave</h3>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Flujo</th><th>Pasos</th><th>Taps</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Antojo</strong> (desde el ícono, el link o un acceso rápido)</td><td>Se abre la lista desde caché; si entré por <code>?anotar</code>, el input ya tiene foco (Android; en iPhone: 1 tap) → escribo “helado de dulce de leche”: mientras tipeo la lista se filtra y veo que no está → Enter → aparece abajo con mi inicial y “recién”; el input queda vacío <em>y con foco</em> para seguir anotando.</td><td>0–1 + tipear · el 2.º ítem: 0</td></tr>
+      <tr><td><strong>Papá anota algo que ya está</strong></td><td>Escribe “yog” → la lista se reduce a “Yogur de frutilla” (pendiente, resaltado) → sigue tipeando “yogur” → el botón dice “Agregar «yogur»”; si tipea el mismo texto, dice “Ya está” y Enter no agrega. Si el yogur estaba en Comprados: “Volver a anotar «Yogur»” y Enter lo devuelve a pendientes.</td><td>Ninguno extra: lo ve mientras escribe</td></tr>
+      <tr><td><strong>Mamá en el súper</strong> (una mano, señal mala)</td><td>Abre desde el ícono → lista desde caché, pastilla “Sin conexión” sin ningún cartel bloqueante → por cada cosa toca la fila: se tacha, vibra, y recién a los <strong>700 ms</strong> baja a Comprados (tiempo para destildar si le erró) → si la lista es larga, escribe “le” en el input y encuentra la leche → al salir toca “Vaciar” → “¿Vaciar los 9? Sí” → listo. Al volver la señal sincroniza sola.</td><td>1 por ítem + 2 para vaciar · 0 para sincronizar</td></tr>
+      <tr><td><strong>Sumar a mamá y papá</strong> (una vez en la vida)</td><td>⋯ › Sumar a alguien → hoja del sistema (Web Share) con el link y el mensaje prearmado → elijo el grupo de WhatsApp → mamá toca el link → ve la lista real (sin registro, sin “unirse”) → sheet “¿Quién sos?” → toca “Mamá” → “Soy yo”. Fin: de ahí en más abre desde el ícono.</td><td>Yo: 3 · Mamá: 3, una vez</td></tr>
+      <tr><td><strong>Mandar la lista por WhatsApp</strong> (texto)</td><td>⋯ › Mandar la lista por WhatsApp → se arma “Lista de casa (7): · Leche · Yerba · Pan…” → hoja del sistema → elijo a quién. Sirve para quien no tiene la app o por las dudas. Sin app: llega como texto.</td><td>3</td></tr>
+      <tr><td><strong>Me equivoqué</strong></td><td>Chevron al final de la fila (o long-press) → sheet Editar con el texto ya enfocado → corrijo → Enter. Borrar → toast “Borraste «Yerba» · Deshacer” 6 s. Sin swipe-para-borrar (pelea con “atrás” de iOS y con el scroll).</td><td>Editar: 1 + tipear · Deshacer: 1</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose">
+  <h3>Interacciones que definen la app</h3>
+  <ul>
+    <li><strong>La fila entera tildea</strong> (56 px de alto, checkbox real con <code>&lt;label&gt;</code>). Demora de 700 ms antes de que la fila baje a Comprados: mamá ve lo que tocó y puede destocarlo. Con <code>prefers-reduced-motion</code>, baja al instante.</li>
+    <li><strong>Modo ráfaga:</strong> tras Enter el campo se vacía pero mantiene el foco (y la lista vuelve completa, con lo nuevo abajo). Anotar cinco cosas = tipear + Enter cinco veces.</li>
+    <li><strong>El input es filtro y alta a la vez.</strong> Mientras escribís, la lista se reduce en vivo a lo que coincide: pendientes arriba, comprados que coinciden abajo (atenuados, “ya lo compraron”), y chips de historial que coinciden (“lo compraste otras veces”). El contador dice “Faltan 7 · 1 coincide”. Así ves si algo ya está <em>antes</em> de agregarlo, sin revisar la lista — y en el súper el mismo input sirve para buscar. Vaciar el input devuelve la lista completa.</li>
+    <li><strong>El botón dice lo que va a pasar:</strong> “Agregar «yogur»” (no hay coincidencia exacta) · “Ya está” (deshabilitado; el ítem existente pulsa) · “Volver a anotar «Yogur»” (coincide con un comprado). Enter decide con la misma regla: exacta con pendiente → no agrega y resalta; exacta con comprado → lo devuelve a pendientes (“Volví «Yogur» a la lista”); sin exacta (“yogur” vs “yogur de frutilla”) → agrega, porque es otra cosa y ya viste la parecida.</li>
+    <li><strong>Coincidencia tolerante:</strong> minúsculas, sin tildes, por prefijo de palabra (“yog” ⇒ “Yogur de frutilla”), plural simple (“yogures” ⇔ “yogur”), y opcional un error de tipeo en palabras de ≥5 letras (“yogurt” ⇒ “yogur”). Filtrar no anima el colapso con <code>prefers-reduced-motion</code>. Lo que el filtro no puede evitar —dos personas anotando lo mismo sin verse— lo resuelve la deduplicación determinista de §5.</li>
+    <li><strong>“Lo de siempre”:</strong> al enfocar el input vacío (y en el estado vacío) aparecen chips con lo que más se compra en esta casa; al tipear, los que coinciden. Un tap agrega. Es lo único “inteligente” y es local.</li>
+    <li><strong>Vaciar</strong> se confirma inline (“¿Vaciar los 4? Sí”, 4 s), nunca con un modal; y tiene Deshacer 8 s.</li>
+    <li><strong>Identidad al abrir, pero descartable:</strong> bottom sheet de ~45 % con la lista visible detrás; un tap en el chip alcanza. Si lo cerrás sin elegir, tu primera acción se firma “alguien” y se vuelve a preguntar después. Nombre repetido en otro teléfono → “¿Sos vos, Mamá? · Sí, soy yo / No, poné otro”.</li>
+    <li><strong>Cambios de otros en vivo</strong> entran con la misma coreografía que los locales, sin robar el scroll ni el foco; si estás scrolleado lejos, una pastilla flotante “Papá agregó 2 cosas · Ver”.</li>
+  </ul>
+
+__MOTION__
+
+  <h3>Copy (español rioplatense)</h3>
+  <ul class="copy-list two-col">
+    <li><b>input</b><q>Anotá o buscá… (ej: 2 kg de papas)</q></li>
+    <li><b>botón</b><q>Agregar «yogur»</q> · <q>Ya está</q> · <q>Volver a anotar «Yogur»</q></li>
+    <li><b>contador</b><q>Faltan 7</q> · <q>Falta 1</q> · <q>Faltan 7 · 1 coincide</q> · <q>No falta nada. Qué lindo.</q></li>
+    <li><b>filtro</b><q>ya lo compraron</q> · <q>lo compraste otras veces</q> · <q>Nada parecido: Enter lo agrega</q></li>
+    <li><b>dedupe</b><q>Papá también anotó yogur; los junté</q></li>
+    <li><b>vacío, primera vez</b><q>Acá va la lista de casa. Anotá lo que falta y todos lo ven al toque.</q></li>
+    <li><b>comprados</b><q>Comprados (4)</q> · <q>Vaciar</q> → <q>¿Vaciar los 4? Sí</q></li>
+    <li><b>toasts</b><q>Borraste «Yerba» · Deshacer</q> · <q>Vaciaste 4 comprados · Deshacer</q></li>
+    <li><b>duplicado</b><q>Ya está en la lista</q> · <q>Volví «Leche» a la lista</q></li>
+    <li><b>quién sos</b><q>¿Quién sos?</q> · <q>Así los demás saben quién anotó qué. Sin contraseña ni nada.</q> · <q>Soy yo</q></li>
+    <li><b>estado</b><q>En vivo</q> · <q>Sin conexión</q> · <q>Sincronizando…</q> · tooltip <q>Sin conexión: lo que hagas se guarda acá y se manda cuando vuelva la señal.</q></li>
+    <li><b>meta de ítem</b><q>Ana · hace 2 h</q> · <q>Vos · recién</q> · <q>✓ Mamá · 18:32</q></li>
+    <li><b>sumar a alguien</b><q>Esta es la lista de compras de casa. Abrila, poné quién sos y listo: {link}</q> · <q>Es la llave de casa: no lo publiques por ahí.</q></li>
+    <li><b>mandar por WhatsApp</b><q>Lista de casa (7):</q> <q>· Leche (×2)</q> <q>· Yerba, la de siempre</q> <q>· Pan</q> … <q>— mandado desde Heladera</q></li>
+    <li><b>menú ⋯</b><q>Mandar la lista por WhatsApp</q> · <q>Sumar a alguien</q> · <q>Cambiar mi nombre</q> · <q>Exportar</q></li>
+    <li><b>instalar</b><q>Agregala al inicio para tenerla a mano</q> · <q>Cómo</q> · <q>Ahora no</q></li>
+    <li><b>sin señal ni caché</b><q>No tengo señal y todavía no bajé la lista. Probá de nuevo cuando tengas conexión.</q></li>
+  </ul>
+
+  <h3>Dirección visual: Papel de almacén, con acento cuero</h3>
+  <p>El panel propuso dos direcciones (crema + serif “papel de almacén” y una alternativa “cuaderno rayado”); se maquetaron las dos con tipografías reales y el dueño eligió <strong>Papel de almacén</strong> por su carácter retro. El acento original (rojo imán) le resultó chillón para ese registro, así que se armó un editor de paleta con presets y contraste AA en vivo (<code>docs/diseno/paleta.html</code>) y quedó <strong>Cuero</strong>: un marrón tabaco cálido que separa “acción” de los verdes/ámbar de estado y no grita.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="eyebrow">Papel de almacén · claro</div>
+      <p style="font-size:15px;margin:8px 0 0">La libreta de tapa dura sobre la heladera: crema cálido (no encandila bajo fluorescente), tinta casi negra, un solo acento cuero para lo que se toca. Renglones con hairlines. Cero sombras, cero gradientes.</p>
+      <div class="swatches">
+        <div class="sw"><i style="background:#F6F1E7"></i>papel</div>
+        <div class="sw"><i style="background:#FFFDF8"></i>superficie</div>
+        <div class="sw"><i style="background:#1B1A17"></i>tinta</div>
+        <div class="sw"><i style="background:#6B655A"></i>lápiz</div>
+        <div class="sw"><i style="background:#7B4A2D"></i>cuero</div>
+        <div class="sw"><i style="background:#2A7043"></i>en vivo</div>
+        <div class="sw"><i style="background:#946012"></i>ámbar</div>
+      </div>
+      <dl class="kv" style="margin-top:8px">
+        <dt>Tipos</dt><dd>Fraunces (rótulo y contador, eje SOFT 100) + DM Sans 17,5 px en ítems</dd>
+        <dt>Acento</dt><dd>relleno <code>#7B4A2D</code> · como texto <code>#6E4228</code> · texto sobre acento <code>#FFFFFF</code></dd>
+        <dt>Personas</dt><dd>cuero <code>#7B4A2D</code>, petróleo <code>#2A6F8A</code>, oliva <code>#5B7A2E</code>, mostaza <code>#B8860B</code>, siempre con nombre</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Papel de almacén · oscuro (“pizarra de noche”)</div>
+      <p style="font-size:15px;margin:8px 0 0">Grafito cálido (nunca negro puro), texto tiza, el cuero se aclara para mantener contraste y el texto sobre acento pasa a tinta. Sigue <code>prefers-color-scheme</code>; sin toggle.</p>
+      <div class="swatches">
+        <div class="sw"><i style="background:#1C1D1A"></i>papel</div>
+        <div class="sw"><i style="background:#262723"></i>superficie</div>
+        <div class="sw"><i style="background:#EDE7DA"></i>tinta</div>
+        <div class="sw"><i style="background:#A39C8E"></i>lápiz</div>
+        <div class="sw"><i style="background:#C48A5A"></i>cuero</div>
+        <div class="sw"><i style="background:#6FB98A"></i>en vivo</div>
+        <div class="sw"><i style="background:#E0A44A"></i>ámbar</div>
+      </div>
+      <dl class="kv" style="margin-top:8px">
+        <dt>Acento</dt><dd>relleno <code>#C48A5A</code> · como texto <code>#CD9A70</code> · texto sobre acento <code>#1B1A17</code></dd>
+        <dt>Contraste</dt><dd>todo texto ≥ 4,7:1 en los dos modos; iconos y bordes ≥ 3:1 (verificado en el editor)</dd>
+        <dt>Fuente de verdad</dt><dd><code>docs/diseno/paleta.html</code> → “Copiar tokens”; en la app viven en <code>src/styles/tokens.css</code></dd>
+      </dl>
+    </div>
+  </div>
+  <div class="prose">
+  <p style="margin-top:14px">Reglas comunes: escala de 4 px; filas de 56 px; targets ≥ 44 px con 8 px entre sí; input ≥ 16 px (iOS no hace zoom); máximo 560 px de ancho centrado en desktop (aire, no columnas); fuentes autohospedadas (woff2, subset latín) para que funcionen offline; motion según §9; modo oscuro por sistema; <code>theme-color</code> sincronizado con el modo. Ningún color, tamaño ni tiempo hardcodeado en componentes: todo sale de tokens (<code>tokens.css</code>, <code>motion/tokens.ts</code>, <code>domain/timing.ts</code>).</p>
+
+  <h3>Accesibilidad</h3>
+  <p>HTML semántico: <code>&lt;ul&gt;</code>/<code>&lt;li&gt;</code>, casilla como <code>&lt;input type=checkbox&gt;</code> real dentro de un <code>&lt;label&gt;</code> que envuelve la fila (tildar con teclado y lector viene gratis), sheets como <code>&lt;dialog&gt;</code> con foco atrapado y Escape, contador y toasts con <code>aria-live="polite"</code>. Estado nunca solo por color: la pastilla lleva texto e ícono; lo comprado está tachado además de gris; las personas llevan nombre además de color. Contraste AA en ambos temas. Tamaños en <code>rem</code>: si mamá tiene la letra grande del teléfono, la lista crece sin romperse. Foco visible en todo. <code>lang="es-AR"</code>, <code>enterkeyhint="done"</code>, <code>autocomplete="off"</code>, <code>autocapitalize="sentences"</code> en el input, que es <code>type="search"</code> con <code>name="buscar"</code>: dice lo que es (búsqueda y alta), y así el gestor de contraseñas de Chrome Android no lo toma por un campo de usuario (un form con un único campo de texto + botón dispara esa heurística; <code>autocomplete="off"</code> no la apaga) ni muestra la barra de llaves/tarjetas del teclado. Los controles que continúan la escritura (chips, Agregar, ✕, “volver a anotar”) no toman el foco con el puntero (<code>preventDefault</code> en <code>pointerdown</code>): el teclado no se cierra a cada toque.</p>
+
+  <h3>Qué NO hacemos en v1 (por convicción, no por tiempo)</h3>
+  <ul class="two-col">
+    <li>Cuentas, login, invitaciones: el link es la llave.</li>
+    <li>Varias listas / “crear lista” en la UI: hay una heladera. El modelo lo soporta por si acaso.</li>
+    <li>Categorías, pasillos, drag &amp; drop: para 10–15 ítems cuesta más de lo que rinde.</li>
+    <li>Campo de cantidad separado: va en el texto, como en el papel.</li>
+    <li>Precios, presupuesto, fotos, recetas: otra app.</li>
+    <li>Presencia (“Mamá está mirando”): heartbeats, batería, y a algunas familias les incomoda.</li>
+    <li>Notificaciones push: ruido; la lista se mira cuando se va a comprar.</li>
+    <li>Auto-archivo de comprados a la madrugada: sorprende y agrega lógica de reloj.</li>
+    <li>Parseo automático de cantidades (“2 leches”): se rompe seguido.</li>
+    <li>Toggle de tema, elección de color, ajustes: sigue el sistema.</li>
+    <li>Onboarding, splash, tour: la primera pantalla es la lista.</li>
+    <li>Confirmaciones modales: solo “Vaciar” pide un segundo tap, inline.</li>
+    <li>Pantalla “Compartir la lista”, QR o instrucciones de pegatina dentro de la app: todos ven la misma lista; sumar a alguien es una fila del menú, y el resto es README.</li>
+    <li>Swipe para borrar: pelea con “atrás” de iOS y con el scroll; el chevron y el long-press alcanzan.</li>
+  </ul>
+  </div>
+</section>

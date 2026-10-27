@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function auth() { return request.auth != null; }
+
+    /**
+     * QUIÉN PUEDE ENTRAR (D22 · Etapa 1). Separado de QUIÉN ES: `miembros/{memberId}` son las personas de la casa
+     * (Mamá, Papá) y `agregadoPor` apunta ahí; `acceso/{uid}` es la llave, y cuelga del uid de Firebase.
+     * El dueño vive en el doc de la lista, no en cada acceso: así echar a alguien es borrar UN doc y no reescribir
+     * roles. Los get()/exists() se cobran como lecturas pero se cachean POR PATH dentro del request, así que llamar
+     * a estas funciones varias veces en la misma regla se paga una sola vez.
+     */
+    function accesoRef(listId, uid) { return /databases/$(db)/documents/listas/$(listId)/acceso/$(uid); }
+    function listaRef(listId) { return /databases/$(db)/documents/listas/$(listId); }
+    function esMiembro(listId) { return auth() && exists(accesoRef(listId, request.auth.uid)); }
+    /**
+     * La misma pregunta, para ESCRITURAS. En un lote, exists() sobre un doc que ese mismo lote escribe no da
+     * false: da error de evaluación — y crearLista escribe lista + miembros + sugerencias + LA LLAVE en un solo
+     * lote, así que las reglas de las subcolecciones explotaban evaluando la membresía del creador.
+     * existsAfter mira el estado RESULTANTE del lote y es seguro: esa llave solo queda si su propia regla de
+     * create pasó (invitación válida o dueño del lote). Fuera de un lote, existsAfter == exists.
+     */
+    function esMiembroAlEscribir(listId) { return auth() && existsAfter(accesoRef(listId, request.auth.uid)); }
+    function esDuenio(listId) { return auth() && get(listaRef(listId)).data.get('duenio', '') == request.auth.uid; }
+
+    /**
+     * Una invitación válida para ESTA lista. El canje funciona sin backend porque el get() de las reglas lo hace
+     * el motor del lado del servidor y NO se re-evalúa contra las reglas: el forastero no puede leer el código
+     * (allow get: if esDuenio) y aun así puede presentarlo. El código es un bearer token: va en el fragmento de
+     * la URL (#i=…), que nunca viaja al servidor ni al Referer, y se genera con crypto.getRandomValues.
+     * No se puede hacer de un solo uso: las reglas no saben contar ni hacer read-modify-write atómico. Por eso
+     * vence a los 7 días y se puede revocar.
+     */
+    function invitacionValida(listId, codigo) {
+      return codigo is string && codigo.size() >= 20
+        && exists(/databases/$(db)/documents/listas/$(listId)/invitaciones/$(codigo))
+        && get(/databases/$(db)/documents/listas/$(listId)/invitaciones/$(codigo)).data.revocada == false
+        && get(/databases/$(db)/documents/listas/$(listId)/invitaciones/$(codigo)).data.venceEn > request.time;
+    }
+    function esStr(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
+    // las 14 claves de datos de un ítem (el id va en el doc): un ítem nace con TODAS y con ninguna otra
+    function clavesItem() { return ['texto','textoNorm','estado','agregadoEn','agregadoPor','agregadoPorNombre','compradoEn','compradoPor','compradoPorNombre','borradoEn','actualizadoEn','actualizadoPor','actualizadoPorNombre','mercado']; }
+    // dónde se compra: el id de un mercado, o null ("en cualquiera"). No se valida que exista: un id colgado
+    // la app lo lee como sin súper, y exigir un get() por escritura saldría caro y frenaría el modo offline.
+    function mercadoOk(d) { return !('mercado' in d) || d.mercado == null || d.mercado is string; }
+    /**
+     * Todo campo opcional se valida con el mismo molde: `!(clave in d)` primero, porque un ítem viejo puede no
+     * tener una clave que se agregó después (el `hasOnly` del update NO exige que estén todas) y leer una clave
+     * ausente hace fallar la regla entera. Después `== null`, que es un valor legítimo en casi todos.
+     */
+    function textosItemOk(d) {
+      return esStr(d.texto, 120)
+        // textoNorm SÍ puede ser vacío: `normalizar('...')` no deja nada, y ese ítem es válido igual
+        && (!('textoNorm' in d) || (d.textoNorm is string && d.textoNorm.size() <= 120));
+    }
+    // quién: un memberId (o 'alguien'), y el nombre que tenía esa persona cuando lo tocó
+    function personasItemOk(d) {
+      return (!('agregadoPor' in d) || d.agregadoPor == null || esStr(d.agregadoPor, 40))
+        && (!('agregadoPorNombre' in d) || d.agregadoPorNombre == null || esStr(d.agregadoPorNombre, 40))
+        && (!('compradoPor' in d) || d.compradoPor == null || esStr(d.compradoPor, 40))
+        && (!('compradoPorNombre' in d) || d.compradoPorNombre == null || esStr(d.compradoPorNombre, 40))
+        && (!('actualizadoPor' in d) || d.actualizadoPor == null || esStr(d.actualizadoPor, 40))
+        && (!('actualizadoPorNombre' in d) || d.actualizadoPorNombre == null || esStr(d.actualizadoPorNombre, 40));
+    }
+    // cuándo: `serverTimestamp()` ya está resuelto cuando la regla corre, así que llega como timestamp
+    function fechasItemOk(d) {
+      return (!('agregadoEn' in d) || d.agregadoEn == null || d.agregadoEn is timestamp)
+        && (!('compradoEn' in d) || d.compradoEn == null || d.compradoEn is timestamp)
+        && (!('borradoEn' in d) || d.borradoEn == null || d.borradoEn is timestamp)
+        && (!('actualizadoEn' in d) || d.actualizadoEn == null || d.actualizadoEn is timestamp);
+    }
+    /** Un ítem entero, con las 14 claves acotadas en tipo y tamaño. El techo real de un doc es 1 MiB: sin esto,
+     * las 11 claves que no se miraban alcanzaban para inflarlo y que lo baje cada teléfono en cada apertura. */
+    function itemOk(d) { return textosItemOk(d) && personasItemOk(d) && fechasItemOk(d) && mercadoOk(d); }
+    /**
+     * "Esto lo anoté yo antes de decir quién era": el único caso en que se puede tocar `agregadoPor`. Solo se puede
+     * pasar de 'alguien' a una persona, nunca al revés ni de una persona a otra, así nadie se apropia de lo ajeno.
+     * `agregadoEn` sigue siendo intocable siempre.
+     */
+    function reclamaAnonimo() {
+      return resource.data.agregadoPor == 'alguien'
+        && request.resource.data.agregadoPor is string
+        && request.resource.data.agregadoPor != 'alguien';
+    }
+
+    /**
+     * "¿En qué listas estoy?" (D22 · Etapa 2): un collection group sobre TODAS las colecciones `acceso`,
+     * filtrado por el campo uid (por el id del doc no se puede: Firestore exige un path completo). La regla
+     * autoriza por `resource.data.uid`, nunca por el comodín del id — en una query no hay documento y comparar
+     * contra el comodín explota con "Null value error". Solo abre LAS PROPIAS llaves: nada ajeno viaja por acá.
+     */
+    match /{camino=**}/acceso/{uid} {
+      allow read: if auth() && resource.data.uid == request.auth.uid;
+    }
+
+    match /listas/{listId} {
+      allow get: if esMiembro(listId);
+      allow list: if false;                       // nadie enumera listas: se llega por acceso, no por enumeración
+      // `creadaEn` y `esquema` se validan aunque nadie los mire nunca: sin esto, cualquiera con un token anónimo
+      // podía crear listas de 1 MB en ids inventados —sin conocer NINGÚN id— y llenar el GiB del plan gratis para
+      // siempre (las listas no se pueden borrar). Acotados, una lista basura pesa bytes.
+      allow create: if auth()
+        && request.resource.data.keys().hasOnly(['nombre','creadaEn','esquema','duenio'])
+        && esStr(request.resource.data.nombre, 60)
+        // una lista nace con dueño, y no podés crearla a nombre de otro
+        && (!('duenio' in request.resource.data) || request.resource.data.duenio == request.auth.uid)
+        && (!('creadaEn' in request.resource.data) || request.resource.data.creadaEn is timestamp)
+        && (!('esquema' in request.resource.data) || (request.resource.data.esquema is int
+              && request.resource.data.esquema >= 1 && request.resource.data.esquema <= 1000));
+      // renombrar: cualquier miembro. El dueño no se transfiere ni se reclama: nace con la lista.
+      allow update: if esMiembroAlEscribir(listId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+        && esStr(request.resource.data.nombre, 60);
+      // borrar la lista: SOLO el dueño, y es físico y sin deshacer. Por resource.data (no esDuenio): este es el
+      // propio doc — un get() sobre lo que se está borrando sería leerse a sí mismo con vueltas.
+      allow delete: if auth() && resource.data.get('duenio', '') == request.auth.uid;
+
+      /** La llave. Un doc por uid con acceso a esta lista; borrarlo es echar (o irse). */
+      match /acceso/{uid} {
+        // OJO: separadas a propósito. En un `list` no hay documento, así que el comodín `uid` es null y
+        // compararlo explota con "Null value error" — el mismo borde que hace que un collectionGroup no pueda
+        // filtrar por id de documento. Leer LA PROPIA llave siempre se puede (si no, entrar() no podría
+        // preguntar "¿ya la tengo?" sin tenerla); enumerarlas, solo desde adentro.
+        allow get: if esMiembro(listId) || (auth() && uid == request.auth.uid);
+        allow list: if esMiembro(listId);
+        // el uid va también como campo porque un collectionGroup no puede filtrar por id de documento
+        // (Firestore exige un path completo): sin el campo no hay forma de responder "en qué listas estoy".
+        allow create: if auth() && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['uid','memberId','entroEn','porCodigo'])
+          && request.resource.data.uid == request.auth.uid
+          && (!('memberId' in request.resource.data) || request.resource.data.memberId == null
+                || esStr(request.resource.data.memberId, 40))
+          && (!('entroEn' in request.resource.data) || request.resource.data.entroEn is timestamp)
+          && (invitacionValida(listId, request.resource.data.get('porCodigo', ''))
+                // el que crea la lista se da la llave en el MISMO lote: getAfter mira el estado ya escrito, porque
+                // durante el batch el doc de la lista todavía no existe y un get() normal no vería el dueño.
+                || getAfter(listaRef(listId)).data.get('duenio', '') == request.auth.uid);
+        // de un acceso se cambia UNA sola cosa, y solo en la propia llave: a quién decís ser. Las etiquetas de
+        // dispositivo se sacaron (D26): existían para distinguir el mismo nombre repetido por dispositivo cuando la identidad era el uid del
+        // aparato; con la cuenta de Google (D23) los dispositivos de una persona son UNA llave y la etiqueta
+        // pasó de ayuda a ruido. La identidad ajena no se toca ni siendo dueño: al dueño le queda echar.
+        // Las llaves viejas pueden traer todavía el campo `etiqueta`: leerlo no molesta, y ya nadie lo escribe
+        // (affectedKeys mira lo que CAMBIA, así que un doc con etiqueta se sigue actualizando sin problema, y hay
+        // un test que lo muestra). Por eso acá va diff() y no un keys().hasOnly() como el del create de arriba:
+        // esa simetría le negaría el update a cada llave que todavía tiene la etiqueta adentro.
+        allow update: if auth() && uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberId'])
+          && (!('memberId' in request.resource.data) || request.resource.data.memberId == null
+                || esStr(request.resource.data.memberId, 40));
+        // el dueño echa; cualquiera se va solo. Echar SIN revocar lo que esa persona invitó no alcanza:
+        // vuelve a entrar con su propio código. Las dos cosas van en el mismo lote (ver Db.expulsar).
+        allow delete: if auth() && (uid == request.auth.uid || esDuenio(listId));
+      }
+
+      /** La puerta. Cualquier miembro invita; el dueño ve y revoca. Nadie más las lee, ni con el código. */
+      match /invitaciones/{codigo} {
+        allow get, list: if esDuenio(listId);
+        allow create: if esMiembroAlEscribir(listId)
+          && codigo.size() >= 20
+          && request.resource.data.keys().hasOnly(['creadaPor','creadaEn','venceEn','revocada'])
+          && request.resource.data.creadaPor == request.auth.uid
+          && request.resource.data.revocada == false
+          && (!('creadaEn' in request.resource.data) || request.resource.data.creadaEn is timestamp)
+          && request.resource.data.venceEn is timestamp
+          && request.resource.data.venceEn > request.time
+          // nadie se fabrica una invitación eterna: el tope vive en las reglas, no en el cliente
+          && request.resource.data.venceEn < request.time + duration.value(8, 'd');
+        // solo se revoca, nunca se resucita ni se estira
+        allow update: if auth() && (esDuenio(listId) || resource.data.creadaPor == request.auth.uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revocada'])
+          && request.resource.data.revocada == true;
+        allow delete: if esDuenio(listId);   // parte del desarme de la lista (borrarLista)
+      }
+
+      match /miembros/{memberId} {
+        allow read: if esMiembro(listId);
+        allow create, update: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(['nombre','color','creadoEn'])
+          && esStr(request.resource.data.nombre, 30)
+          // el color es un token de la paleta, no CSS libre: la UI lo mete en `var(--<color>)`
+          && (!('color' in request.resource.data) || request.resource.data.color in ['p1','p2','p3','p4'])
+          && (!('creadoEn' in request.resource.data) || request.resource.data.creadoEn is timestamp);
+        // solo como parte de borrar la lista entera (el doc de la lista se borra al FINAL, así este get todavía la ve)
+        allow delete: if esDuenio(listId);
+      }
+      match /mercados/{mercadoId} {
+        allow read: if esMiembro(listId);
+        allow create, update: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(['nombre','creadoEn'])
+          && esStr(request.resource.data.nombre, 40)
+          && (!('creadoEn' in request.resource.data) || request.resource.data.creadoEn is timestamp);
+        // ÚNICO borrado físico de la app: un súper es una etiqueta, no el dato de nadie. Los ítems que lo apuntaban
+        // conservan el id y se leen como "en cualquiera", así que deshacer (recrearlo con el mismo id) los devuelve.
+        allow delete: if esMiembroAlEscribir(listId);
+      }
+      match /items/{itemId} {
+        allow read: if esMiembro(listId);
+        allow create: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(clavesItem())
+          && request.resource.data.keys().hasAll(clavesItem())
+          && itemOk(request.resource.data)
+          && request.resource.data.estado == 'pendiente';
+        // el `hasOnly` faltaba acá y estaba en `create`: sin él se le podían agregar claves inventadas a un ítem
+        // que ya existía. NO se pide `hasAll`: un ítem viejo puede no tener una clave que se agregó después.
+        allow update: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(clavesItem())
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['agregadoEn'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['agregadoPor']) || reclamaAnonimo())
+          && itemOk(request.resource.data)
+          && request.resource.data.estado in ['pendiente','comprado','borrado'];
+        // el borrado de ÍTEMS sigue siendo lógico para todos; el físico existe solo para que el dueño
+        // desarme la lista entera (borrarLista)
+        allow delete: if esDuenio(listId);
+      }
+      match /meta/sugerencias {
+        allow read: if esMiembro(listId);
+        // el alta siembra las ~40 entradas de una; después se toca de a una (anotar un uso, aprender un súper,
+        // borrar una sugerencia). Dos topes, porque uno solo no alcanza: `affectedKeys` acota cuánto se mueve de
+        // una vez, y el piso de tamaño acota cuánto se PIERDE — sin él, pisar el doc con `{ entradas: {} }`
+        // cuando tiene pocas entradas movía pocas claves y pasaba. Lo aprendido no tiene historial: si se borra,
+        // no vuelve. Borrar de a una es uso normal; vaciar de un saque no lo es.
+        allow create: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(['entradas'])
+          && request.resource.data.entradas.size() <= 5000;
+        allow update: if esMiembroAlEscribir(listId)
+          && request.resource.data.keys().hasOnly(['entradas'])
+          && request.resource.data.entradas.size() <= 5000
+          && request.resource.data.entradas.diff(resource.data.entradas).affectedKeys().size() <= 20
+          && request.resource.data.entradas.size() >= resource.data.entradas.size() - 1;
+        allow delete: if esDuenio(listId);   // parte del desarme de la lista (borrarLista)
+      }
+    }
+  }
+}

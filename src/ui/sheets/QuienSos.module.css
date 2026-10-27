@@ -1,0 +1,65 @@
+.form { display: flex; flex-direction: column; gap: var(--s-4); }
+
+.texto { color: var(--muted); font-size: var(--fs-body); line-height: var(--lh-body); }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);   /* ≥ 8px entre targets */
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: 100%;   /* nombres largos en 320px: el chip no desborda, el texto envuelve */
+  min-height: var(--chip-h);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  border: var(--bw-field) solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-item);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  transition: background-color var(--dur-instant) var(--ease-out), border-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chip:active { background: var(--tint); }
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--tint);
+  color: var(--accent-ink);
+}
+
+.dot {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--r-pill);
+  flex: none;
+}
+.chipNombre { white-space: normal; min-width: 0; overflow-wrap: anywhere; }
+.actual { font-size: var(--fs-meta); color: var(--muted); }
+
+.campo { display: flex; flex-direction: column; }
+
+.sosVos {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--tint-remote);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.sosVosTexto { font-weight: 600; }
+.sosVosBotones { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+.pie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.ahoraNo { color: var(--muted); }

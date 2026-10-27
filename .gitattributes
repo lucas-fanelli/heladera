@@ -1,0 +1,8 @@
+# Normalizar finales de línea en el repo (LF); checkout según autocrlf de cada máquina
+* text=auto
+
+# Binarios
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary

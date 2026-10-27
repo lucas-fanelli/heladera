@@ -1,0 +1,24 @@
+/* Overlay de diagnóstico (?fps): tiene que estorbar poco y no pintar casi nada, para no falsear lo que mide. */
+.medidor {
+  position: fixed;
+  /* debajo de la cabecera (si no, la tapa: la cabecera tiene fondo propio y más z-index) y por encima de todo */
+  top: calc(var(--safe-top) + var(--header-h) + var(--s-1));
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--z-medidor);
+  pointer-events: none;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: var(--bw-hair) solid var(--line-strong);
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  /* centrado con translate: -50%, un nowrap más ancho que la pantalla se corta por LOS DOS lados y se pierde
+     justo lo de las puntas (el modo de teclado, el build). Que envuelva: es un overlay de diagnóstico. */
+  white-space: normal;
+  text-align: center;
+  max-width: calc(100% - var(--s-4));
+}
+.medidor b { color: var(--ink); }
+.build { opacity: var(--op-dim); }

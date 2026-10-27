@@ -1,0 +1,158 @@
+<section id="riesgos">
+  <div class="prose"><h2>10. Riesgos y mitigaciones</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Riesgo</th><th>Probabilidad · impacto</th><th>Mitigación</th></tr></thead>
+    <tbody>
+      <tr><td><strong>El teclado tapa la barra de agregar</strong> en Android Chrome</td><td><span class="pill magnet">alta · alta</span> si no se prueba</td><td><code>visualViewport</code> / <code>interactive-widget=resizes-content</code>; probar en un Android real <em>antes</em> de compartir el link. Si falla, la app se siente rota desde el primer tap.</td></tr>
+      <tr><td><strong>Limpieza automática de cuentas anónimas</strong> de Firebase borra el uid; si un teléfono tenía escrituras encoladas offline, al reconectar podrían rechazarse</td><td><span class="pill">baja · media</span></td><td>Desactivar el toggle el día del setup (verificar si existe: no estoy 100 % seguro de la política actual). Además la app trata al uid como descartable: re-<code>signInAnonymously</code> silencioso, identidad por <code>memberId</code> en localStorage, nombres denormalizados en ítems.</td></tr>
+      <tr><td><strong>iPhone: el NFC abre Safari, no la PWA instalada</strong>; y Safari purga storage de sitios no visitados en ~7 días</td><td><span class="pill">segura · baja</span></td><td>Instrucción “usala desde Safari, sin instalar”. La purga solo borra caché/uid, no datos (ya sincronizados); se recupera con una carga online.</td></tr>
+      <tr><td><strong>Sin sincronización en segundo plano</strong>: mamá tilda offline y no reabre con señal → papá no lo ve</td><td><span class="pill">media · baja</span></td><td>Contador visible “N cambios sin sincronizar”; el hábito de apoyar el teléfono al volver.</td></tr>
+      <tr><td><strong>Se filtra el link</strong> (captura, reenvío)</td><td><span class="pill">baja · baja</span></td><td>Reglas validan forma y prohíben borrar/listar; “Es la llave de casa” junto al link en “Sumar a alguien”; rotar = lista nueva + editar <code>/h</code>. Riesgo aceptado para una familia.</td></tr>
+      <tr><td><strong>Reglas mal escritas</strong> bloquean escrituras en producción</td><td><span class="pill">media · media</span></td><td>Toda operación muestra el error (“No se pudo guardar”); probar cada operación en la lista de prueba antes de <code>deploy --only firestore:rules</code>; reglas en git.</td></tr>
+      <tr><td><strong>Service worker sirve un shell viejo</strong> tras un cambio de modelo</td><td><span class="pill">baja · media</span></td><td><code>autoUpdate</code> + campo <code>esquema</code>; cambios de modelo siempre aditivos.</td></tr>
+      <tr><td><strong>Google cambia el plan gratis</strong> o pide tarjeta</td><td><span class="pill">baja · alta</span></td><td>Solo dependemos de los tres pilares históricos del Spark (Hosting, Firestore, Auth); módulo <code>db</code> aislado (~200 líneas) + Exportar JSON; plan B: mismo front sobre Node+SQLite (§3-B).</td></tr>
+      <tr><td><strong>Perder acceso a la cuenta Google</strong> dueña del proyecto</td><td><span class="pill">baja · alta</span></td><td>Segundo Owner (otro Gmail) desde el día 1.</td></tr>
+      <tr><td><strong>Tildar por error al scrollear</strong> con el pulgar</td><td><span class="pill">media · baja</span></td><td>Demora de 700 ms + destildar con otro tap + toast; validar en el súper real; si molesta, umbral de movimiento.</td></tr>
+      <tr><td><strong>Las animaciones traban en un Android de gama media</strong> (80 filas reordenándose por tecla)</td><td><span class="pill">media · media</span></td><td>Solo transform/opacity, <code>layout="position"</code>, <code>layoutDependency</code>, cap de simultaneidad (&gt; 40 filas → solo opacity), sin <code>will-change</code> manual; presupuesto medido: frame de tecla &lt; 12 ms. Y <code>prefers-reduced-motion</code> respetado (§9).</td></tr>
+      <tr><td><strong>Adopción familiar</strong>: si el primer intento de mamá falla, no hay segunda oportunidad</td><td><span class="pill magnet">— · alta</span></td><td>El plan de verificación de §8 completo antes de mandar el link, y anotar 3–4 cosas reales antes de compartir para que la lista no esté vacía.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="escala" class="prose">
+  <h2>11. Qué revisaríamos si crece</h2>
+  <p>Para una familia, esto no se revisita nunca. Si algún día lo usan otras familias o se vuelve un producto:</p>
+  <ul>
+    <li><strong>Membresía real:</strong> vincular la cuenta anónima a Google (<code>linkWithPopup</code>) y reglas por <code>miembros/{uid}</code> en vez de URL-como-llave; invitaciones por código. <strong>App Check</strong> (reCAPTCHA v3) contra abuso desde scripts.</li>
+    <li><strong>Plan Blaze con presupuesto y alertas</strong> → TTL para purgar borrados viejos, backups programados / PITR, Cloud Functions para push (“Mamá está en el súper, ¿falta algo?”).</li>
+    <li><strong>Sugerencias a subcolección</strong> si el mapa se acerca a 1 MiB o hay escritura muy concurrente al mismo doc.</li>
+    <li><strong>Índices compuestos</strong> (<code>estado</code> + <code>agregadoEn</code>) si las listas pasan de cientos de ítems activos; varias listas por usuario; categorías/pasillos si la familia los pide.</li>
+    <li><strong>Migrar de proveedor</strong> (Supabase/PocketBase/Node) si el modelo se vuelve relacional o el lock-in duele: reescribir el módulo <code>db</code> y la capa offline; el resto de la app no cambia.</li>
+  </ul>
+</section>
+
+__TESTING__
+
+<section id="decisiones">
+  <div class="prose">
+  <h2>13. Decisiones a discutir</h2>
+  <p>Doce decisiones que son tuyas, cada una con mi default. Si te sirve, respondé solo con los números que querés cambiar (“todo default salvo D2 y D4”) y arrancamos. Ya cerradas en la charla: el input filtra mientras escribís, la fusión de escrituras es por campo con deduplicación determinista, la pegatina es un acceso rápido más (nada depende de ella), no hay “compartir lista” (sí “mandar por WhatsApp” como texto y “sumar a alguien”), y la lista se mueve con layout animations en vez de teletransportarse.</p>
+  </div>
+  <div class="decisions">
+    <div class="decision">
+      <h3>Arquitectura</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Firebase (Firestore + Hosting + Auth anónima).</strong> <span class="why">Cero mantenimiento, offline resuelto por el SDK, $0 sin tarjeta, URL HTTPS hoy. A cambio: dependés de Google y de tu Gmail.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Node + SQLite + SSE auto-hospedado.</strong> <span class="why">Sin proveedores y 100 % verificable en local, pero necesita una máquina prendida 24/7 (RPi/NAS/VPS) o tu PC; y el motor offline lo escribimos nosotros. Sube mucho si <em>ya tenés</em> dónde hospedarlo.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Cloudflare Workers + Durable Objects.</strong> <span class="why">$0 sin servidor propio y menos lock-in, pero curva de aprendizaje real y sync artesanal: difícilmente sale hoy.</span></div></div>
+      </div>
+      <div class="default">Default: Firebase. Pregunta que lo cambia: ¿tenés una Raspberry / NAS / VPS prendido siempre?</div>
+    </div>
+
+    <div class="decision">
+      <h3>Nombre de la app</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Heladera</strong> <span class="why">— corto, se entiende en casa, queda bien en el ícono y en el header. Es lo que se ve en los wireframes.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Falta</strong> <span class="why">— “¿Qué falta?”; ingenioso, y el contador “Faltan 7” le sigue el juego, pero suelto en el inicio del teléfono queda raro.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>ShopList</strong> u otro <span class="why">— el nombre de la carpeta; genérico. O el que vos quieras: define también la URL (<code>&lt;nombre&gt;.web.app</code>).</span></div></div>
+      </div>
+      <div class="default">Default: Heladera (proyecto Firebase <code>heladera-lista</code> o el primero libre parecido).</div>
+    </div>
+
+    <div class="decision">
+      <h3>Dirección visual <span class="pill check">cerrada</span></h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>A · Papel de almacén, acento cuero</strong> <span class="why">— elegida el 16-ago-2026 tras maquetar las dos con tipografías reales; el rojo imán se reemplazó por cuero con el editor de paleta (contraste AA verificado). Tokens en <code>docs/diseno/paleta.html</code>.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>B · Cuaderno rayado</strong> <span class="why">— descartada.</span></div></div>
+      </div>
+      <div class="default">Cerrada: A + cuero. Se puede retocar cualquier token en el editor sin tocar el diseño.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Quiénes son y qué teléfonos tienen</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Chips: Tu nombre · Mamá · Papá · Otro nombre…</strong> <span class="why">Los nombres se ven en “Lo agregó Mamá”; conviene que no tipeen libre. Decime si son otros o hay más gente.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>¿Hay algún iPhone en la casa?</strong> <span class="why">Cambia las instrucciones (“usala desde Safari”) y el plan de prueba. Si son todos Android, el flujo NFC es perfecto de punta a punta.</span></div></div>
+      </div>
+      <div class="default">Default: esos tres chips; asumo que puede haber iPhone y publico las dos instrucciones.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Cuándo se pregunta “¿Quién sos?”</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Al abrir por primera vez, sheet descartable</strong> <span class="why">con la lista visible detrás; un tap en un chip alcanza. Si lo cerrás, tu primera acción se firma “alguien” y se vuelve a preguntar.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Recién después de la primera acción</strong> <span class="why">— cero fricción absoluta antes de anotar, a costa de un “alguien · recién” que se reatribuye.</span></div></div>
+      </div>
+      <div class="default">Default: al abrir, descartable. Identidad por id: renombrar propaga a todo lo histórico.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Accesos rápidos: qué va en la pegatina / el QR</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Link corto <code>/h</code></strong> <span class="why">— Hosting redirige a <code>/l/&lt;id&gt;?anotar</code>: rotás el link editando una línea, sin regrabar ni reimprimir; y la app abre lista para escribir (en Android, con teclado). Si preferís que no enfoque, se saca el <code>?anotar</code> del redirect.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>URL directa <code>/l/&lt;id&gt;</code></strong> <span class="why">— más simple; si algún día rotás el link, regrabás la pegatina y reimprimís el QR.</span></div></div>
+      </div>
+      <div class="default">Default: link corto con <code>?anotar</code>. Nada en la app sabe de pegatinas: son instrucciones. Tag sin bloquear (lock) hasta que la familia lo use dos semanas.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Qué es un ítem</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Texto libre, un solo campo</strong> <span class="why">— “2 kg de papas”, como en el papel. Rápido de anotar, rápido de hacer.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Texto + campo de cantidad/nota</strong> <span class="why">— más estructura, un tap más al anotar; solo se justifica si vas a reutilizar cantidades.</span></div></div>
+      </div>
+      <div class="default">Default: texto libre. Sin parseo automático de cantidades.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Orden de los pendientes</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Lo nuevo abajo</strong>, pegado al input <span class="why">— como se escribe en un papel; ves confirmado lo que acabás de anotar sin scrollear.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Lo nuevo arriba</strong> <span class="why">— lo último pedido primero; con 10+ ítems tenés que bajar para ver lo que escribiste.</span></div></div>
+      </div>
+      <div class="default">Default: lo nuevo abajo. Comprados con lo último tildado arriba de su grupo.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Comprados: ¿se vacían solos?</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Solo con “Vaciar”</strong> <span class="why">— 2 taps, con Deshacer. Predecible.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Auto-archivo a la mañana siguiente</strong> <span class="why">— mantiene la lista corta sin esfuerzo, pero sorprende (“¿dónde quedó lo que compré?”) y agrega lógica de reloj/zonas horarias.</span></div></div>
+      </div>
+      <div class="default">Default: manual. Auto-archivo queda como v2 si la familia se olvida de vaciar.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Alcance para hoy</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Mínimo que funciona de punta a punta (≈ 5–6 h):</strong> <span class="why">crear lista · ¿quién sos? · input que filtra + agregar / tildar / editar / borrar con deshacer / vaciar · quién agregó y quién compró · pastilla de estado + puntito pendiente · PWA instalable · menú ⋯ con “Mandar la lista por WhatsApp” (texto) y “Sumar a alguien” (link) · movimiento de la lista (filtrar/tildar/agregar) · tests de capas 1–2 y reglas · deploy · QR o pegatina armados desde el README.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Completo antes de mostrárselo a la familia (≈ 8–12 h):</strong> <span class="why">lo anterior + “lo de siempre” y autocompletado con semilla · colores por persona · exportar JSON · coreografías secundarias (toasts, sheets, contador).</span></div></div>
+      </div>
+      <div class="default">Default: mínimo hoy; el resto mañana. El modelo ya lo prevé, no hay migración.</div>
+    </div>
+
+    <div class="decision">
+      <h3>Testing: dónde corren los tests contra el emulador de Firebase</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>Java en tu PC + CI</strong> <span class="why">— <code>winget install EclipseAdoptium.Temurin.21.JRE</code> (5 min) y <code>npm run test:emu</code> corre reglas + integración offline en local; CI los corre siempre. Es lo que más rinde por hora invertida.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Solo en CI</strong> <span class="why">— tu loop local es unit + componentes con el <code>Db</code> falso (sin Java); las reglas y el offline real se verifican en cada push. Aceptable; el riesgo es que un rojo de reglas te lo diga GitHub, no tu terminal.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Docker</strong> <span class="why">— una imagen de 6 líneas con Node + JRE + firebase-tools; sin Java “instalado”, pero con Docker Desktop.</span></div></div>
+      </div>
+      <div class="default">Default: Java en tu PC (es un JRE, no ensucia nada) + CI. Y tres cosas que los tests van a fijar y conviene decidir ahora: Deshacer-Vaciar es <em>optimista</em> (los N pasan a borrado al toque y Deshacer los devuelve a comprado); la <em>ñ se conserva</em> y las tildes se quitan en <code>textoNorm</code>; y ¿tenés un Android y un iPhone reales a mano para la tanda manual?</div>
+    </div>
+
+    <div class="decision">
+      <h3>Framework de UI (por Motion)</h3>
+      <div class="opts">
+        <div class="opt rec"><span class="dot"></span><div><strong>React 19</strong> <span class="why">— único stack donde Motion (layout animations + AnimatePresence) está soportado y testeado. Cuesta ~48 kB gz más que Preact; Motion pesa 34 y Firestore 100+; se precachea una vez. Sin sorpresas de compat el día que algo no anime.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Preact + <code>preact/compat</code>, con spike primero</strong> <span class="why">— hoy “anda” (el issue histórico se cerró en 2025), pero Motion dice que no lo soporta y Preact tiene una diferencia de timing de efectos que ya rompió exit animations en 2026 (PR #5055 revertida, #5163 cerrada). Spike de 30 min: lista de 12 ítems, filtrar letra por letra, tildar 3 seguidas, cambios simulados cada 2 s, en dev y build, en Android real; si algo salta, se cambia el template a React y listo.</span></div></div>
+        <div class="opt"><span class="dot"></span><div><strong>Sin Motion: View Transitions API o auto-animate</strong> <span class="why">— cero deps, pero la transición nativa bloquea la interacción mientras corre (mala con tipeo continuo) y auto-animate no hace viajar la fila entre grupos. Solo si el requisito de movimiento se relaja.</span></div></div>
+      </div>
+      <div class="default">Default: React 19 + Motion 13. La interfaz <code>Db</code>, las reglas, los tests de lógica y el resto del diseño no cambian.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Documento generado a partir de dos paneles (diseño: 3 arquitecturas · 2 propuestas UX · 2 jueces; testing: 2 diseñadores de tests · 1 crítico) y sintetizado por Claude · ShopList · borrador v2 · Los números de cuotas y planes gratuitos son los que conozco a la fecha: se confirman en las páginas de precios el día del setup.
+</footer>

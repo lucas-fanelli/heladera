@@ -1,0 +1,147 @@
+.fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  min-height: var(--row-h);
+  /* la línea entre ítems es la SUAVE: la fuerte queda reservada para separar súper (ver .seccion en Lista) */
+  border-bottom: var(--bw-hair) solid var(--line-soft);
+  background-color: transparent;
+  /* el resalte (fila nueva / "Ya está") prende al instante y se apaga en dur-linger */
+  transition: background-color var(--dur-linger) var(--ease-out);
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.fila[data-resaltada="true"] { background-color: var(--tint); transition-duration: var(--dur-instant); }
+/* vuelo al/desde el bolsillo: la fila pasa por encima de las que cruza (la que sale ya es absolute por popLayout);
+   el papel de la fila acompaña el vuelo (si no, un texto suelto viaja sobre las demás), salvo que esté resaltada
+   ("Volví a anotar": el tint gana). Mientras vuela no se toca: un tap ahí es para la fila que sube a ocupar el lugar. */
+.fila[data-salida="bolsillo"] { z-index: var(--z-vuelo); border-bottom-color: transparent; }
+/* el hueco de la fila levantada lo pinta Motion (opacity.hueco): un inline style le gana a esta hoja */
+.fila[data-entrada="bolsillo"] { position: relative; z-index: var(--z-vuelo); }
+.fila[data-salida="bolsillo"]:not([data-resaltada="true"]),
+.fila[data-entrada="bolsillo"]:not([data-resaltada="true"]) { background-color: var(--paper); transition-duration: var(--dur-instant); }
+.fila[data-salida], .fila[data-entrada="bolsillo"] { pointer-events: none; }
+
+.label {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--check-size) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--s-3);
+  min-height: var(--row-h);
+  min-width: 0;
+  padding: var(--s-2) 0 var(--s-2) var(--gutter);
+  cursor: pointer;
+  transition: opacity var(--dur-base) var(--ease-std);
+}
+/* press: tint + scale del FONDO (no del texto): el pseudo-elemento es el fondo */
+.label::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  transform: scale(1);
+  transform-origin: center;
+  pointer-events: none;
+  transition: background-color var(--dur-instant) var(--ease-std), transform var(--dur-instant) var(--ease-std);
+}
+.label:active::before { background-color: var(--tint); transform: scale(var(--scl-row)); }
+.label > * { position: relative; }   /* el contenido va por encima del fondo */
+.fila[data-state="hold"] .label { opacity: var(--op-hold); }
+
+/* checkbox real (.sr-only global: visualmente oculto pero enfocable); el foco se ve en la casilla */
+.casilla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--check-size);
+  height: var(--check-size);
+  border-radius: 50%;
+  border: var(--bw-check) solid var(--ink);
+  background: var(--surface);
+  flex: none;
+  transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+input:checked + .casilla { background: var(--accent); border-color: var(--accent); }
+input:focus-visible + .casilla { outline: var(--bw-focus) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.tilde { width: 100%; height: 100%; }
+
+.cuerpo { display: flex; flex-direction: column; min-width: 0; gap: 0.1em; }
+.texto {
+  position: relative;
+  align-self: flex-start;
+  font-size: var(--fs-item);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  transition: color var(--dur-base) var(--ease-std);
+}
+.texto::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: 55%;
+  height: var(--bw-strike);
+  background: var(--strike);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.texto[data-tachado="true"] { color: var(--muted); }
+.texto[data-tachado="true"]::after { transform: scaleX(1); }
+.mark { background: var(--tint); color: inherit; border-radius: var(--r-sm); padding: 0 0.05em; margin: 0 -0.05em; }
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-tight);
+  min-width: 0;
+}
+.metaTexto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync {
+  width: var(--dot-sync); height: var(--dot-sync);
+  border-radius: 50%;
+  background: var(--warn);
+  flex: none;
+}
+
+.cola {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: calc(var(--gutter) - var(--s-2));
+}
+.editar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target);
+  height: var(--target);
+  border-radius: 50%;
+  color: var(--muted);
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.editar:active { background: var(--tint); }
+.chevron { width: var(--icon-sm); height: var(--icon-sm); }
+.volver {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  color: var(--accent-ink);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.volver:active { background: var(--tint); }

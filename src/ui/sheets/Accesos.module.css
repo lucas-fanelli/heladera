@@ -1,0 +1,92 @@
+/* Quién tiene acceso (D22). Mismo ritmo vertical que los otros sheets; las filas son datos, no botones. */
+.titulo {
+  font-family: var(--font-display);
+  font-size: var(--fs-sheet-title);
+  line-height: var(--lh-tight);
+}
+.texto {
+  margin-top: var(--s-2);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-body);
+}
+
+.subtitulo {
+  margin-top: var(--s-5);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lista { display: flex; flex-direction: column; margin-top: var(--s-3); }
+.lista > li + li { border-top: var(--bw-hair) solid var(--line); }
+
+.fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  min-height: var(--target);
+  padding-block: var(--s-2);
+}
+/* Quién cede cuando la fila no entra: los DATOS, no la acción. Los dos hijos se achican, así que flexbox
+   repartía el faltante en proporción y un déficit de 8 px le costaba un renglón entero al control destructivo
+   —«Sacarle el / acceso», un bloque rojo de 600 que en masa le gana al nombre de la llave, que es el dato que
+   hay que leer para elegir—. Con la fila envolviendo, lo que baja de renglón es la acción ENTERA, alineada a
+   la derecha, y nombre y meta se quedan en una línea cada uno. Sin `white-space: nowrap`: medido, a 200 % de
+   zoom de texto el botón pide 317 px contra 256 de panel, y `.panel` (overflow-x: hidden) le recortaría el
+   rótulo; dejándolo envolver, ahí sí, no se pierde nada. Va por estructura y no por clase nueva para que
+   valga igual en las filas de llaves y en las de invitaciones, y en la próxima que alguien agregue. */
+.fila > button { margin-left: auto; }
+.datos { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--s-1); }
+.nombre {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  font-size: var(--fs-item);
+  line-height: var(--lh-tight);
+}
+/* `--lh-tight` es una AFIRMACIÓN sobre la forma del contenido —«esto entra en un renglón»— y acá era cierta
+   en D22, cuando el meta decía «Entró hace 2 h» (`haceCuanto`). D26 lo pasó a PROSA en otro archivo
+   (`Accesos.tsx`: `cuandoDicho`, «Entró el miércoles a las 20:14»), y la afirmación quedó vieja en silencio:
+   nada ata el token de acá con el formateador de allá. La prosa que envuelve lleva `--lh-body`, como `.texto`
+   acá arriba, `.vacio`/`.nota` y `Toast.module.css`; `--lh-tight` solo cuando algo GARANTIZA el renglón en la
+   misma hoja, como el `white-space: nowrap` de `Fila.module.css:98-107`. Medido a 320 px: con la fila
+   envolviendo, a tamaño de texto normal entra en un renglón, pero desde ~163 % de zoom de texto parte
+   «Entró el miércoles a las / 20:14» —preposición huérfana y la hora sola—, y es el dato que decide CUÁL
+   llave se borra. Sin clase aparte para el meta de las invitaciones: ahí no cambia nada (un renglón no tiene
+   interlineado interno; la fila queda en 60 px, la absorben el botón de 44 px y el padding), y sería un
+   segundo lugar donde vive el mismo criterio. */
+.meta { font-size: var(--fs-meta); color: var(--muted); line-height: var(--lh-body); }
+
+/* "dueño" / "este teléfono": una aclaración, no un botón. Que se lea como al margen. */
+.etiqueta {
+  flex: none;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  line-height: calc(var(--lh-tight) * 1.4);
+  white-space: nowrap;
+}
+
+.vacio, .nota {
+  margin-top: var(--s-2);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-body);
+}
+.nota { margin-top: var(--s-4); }
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;                 /* con "Borrar la lista" (solo el dueño) pueden ser tres: que respiren */
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}

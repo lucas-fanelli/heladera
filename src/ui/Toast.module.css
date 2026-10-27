@@ -1,0 +1,49 @@
+/* Zona fija por encima de la barra de agregar + cabecera Comprados; nunca tapa la barra. */
+.zona {
+  position: fixed;
+  left: calc(var(--gutter) + var(--safe-left));
+  right: calc(var(--gutter) + var(--safe-right));
+  bottom: calc(var(--inputbar-h) + var(--donebar-h) + var(--safe-bottom) + var(--kb-inset) + var(--s-3));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;   /* la zona vacía no bloquea la lista */
+  z-index: var(--z-toast);
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  max-width: calc(var(--content-max) - 2 * var(--gutter));
+  min-height: var(--target);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--toast);
+  color: var(--toast-ink);
+  box-shadow: var(--shadow-toast);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.texto { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.accion,
+.cerrar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target);
+  min-width: var(--target);
+  border-radius: var(--r-pill);
+  color: var(--toast-ink);
+  transition: background-color var(--dur-instant) var(--ease-out);
+}
+.accion { padding: 0 var(--s-3); font-weight: 700; text-decoration: underline; text-underline-offset: 0.15em; }
+.accion:active, .cerrar:active { background: var(--toast-tint); }
+.cerrar svg { width: var(--icon-size); height: var(--icon-size); }
+
+/* el anillo de foco sobre fondo oscuro/claro invertido: usar la tinta del toast */
+.accion:focus-visible, .cerrar:focus-visible { outline-color: var(--toast-ink); }

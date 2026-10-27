@@ -1,0 +1,45 @@
+.pastilla {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: calc(var(--target) * 0.6);
+  padding: 0 var(--s-3);
+  border: var(--bw-hair) solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 0;   /* si el header no da, la pastilla cede (nunca la marca ni las acciones) */
+  transition: color var(--dur-base) var(--ease-std), border-color var(--dur-base) var(--ease-std);
+}
+/* pantallas muy angostas (≤ 360px): menos padding para que entren marca, pastilla y acciones */
+@media (max-width: 22.5rem) {
+  .pastilla { padding: 0 var(--s-2); }
+}
+.pastilla[data-estado="live"] { color: var(--ok); }
+.pastilla[data-estado="offline"] { color: var(--muted); }
+.pastilla[data-estado="sync"] { color: var(--warn); }
+
+.punto {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  flex: none;
+  border: var(--bw-hair) solid currentColor;
+  background: currentColor;
+  transition: background-color var(--dur-base) var(--ease-std);
+}
+.pastilla[data-estado="offline"] .punto { background: transparent; }
+.pastilla[data-estado="sync"] .punto {
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+  animation: girar var(--dur-spin) linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .pastilla[data-estado="sync"] .punto { animation: none; }
+}
+
+.textoSlot { position: relative; display: inline-grid; min-width: 0; }
+.texto { grid-area: 1 / 1; overflow: hidden; text-overflow: ellipsis; }

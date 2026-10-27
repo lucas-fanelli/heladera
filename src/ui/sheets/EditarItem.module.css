@@ -1,0 +1,16 @@
+.form { display: flex; flex-direction: column; gap: var(--s-2); }
+.meta { margin-top: var(--s-2); font-size: var(--fs-meta); color: var(--muted); }
+.guardar { width: auto; padding-inline: var(--s-6); margin-left: auto; }
+
+/* ¿dónde se compra? (D15): el sheet dejó de ser "renombrar" y es el ítem con sus acciones */
+.donde { display: flex; flex-direction: column; gap: var(--s-2); border: 0; padding: 0; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.nuevo { display: flex; gap: var(--s-2); align-items: center; }
+.nuevo input { flex: 1 1 auto; min-width: 0; }
+.nuevoBoton { width: auto; padding-inline: var(--s-4); }
+/* la píldora con el borrado armado: se ve que es otra cosa, sin gritar */
+.borrarMercado {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-tint);
+}

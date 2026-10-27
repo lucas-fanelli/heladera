@@ -1,0 +1,118 @@
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* que la última fila no quede debajo de "Comprados · Vaciar" ni de la barra de agregar (ni del teclado) */
+  padding-bottom: calc(var(--donebar-h) + var(--inputbar-h) + var(--safe-bottom) + var(--kb-inset) + var(--s-4));
+  /* scrollIntoView (fila nueva, chips) alinea contra el borde visible, no contra el que tapan las barras */
+  scroll-padding-bottom: calc(var(--donebar-h) + var(--inputbar-h) + var(--safe-bottom) + var(--kb-inset) + var(--s-2));
+}
+.lista {
+  position: relative;   /* popLayout lo exige: las filas que salen se posicionan absolutas acá adentro */
+  min-width: 0;
+}
+/* el alto lo pone la Lista (inline) mientras salen filas; después se anima a 0 */
+.colchon { flex: none; pointer-events: none; }
+.nota {
+  padding: var(--s-2) var(--gutter);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  font-style: italic;
+}
+.cabecera {
+  padding: var(--s-4) var(--gutter) var(--s-1);
+}
+/**
+ * Título de un súper (D16): un renglón más de la MISMA lista. La regla CRUZA todo el ancho entre el nombre y la
+ * cuenta, así el corte se lee desde cualquier lado y no solo pegado al margen izquierdo; y es la línea fuerte,
+ * mientras que la de los ítems es la suave: líneas fuertes = súper, líneas suaves = ítems.
+ */
+.seccion {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--gutter) var(--s-2);
+}
+/* el título del súper es más grande que un rótulo cualquiera: en el teléfono tiene que leerse de un vistazo */
+.tituloSeccion {
+  font-size: var(--fs-seccion);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: var(--lh-tight);
+}
+.regla {
+  flex: 1 1 auto;
+  min-width: var(--s-4);
+  border-top: var(--bw-field) solid var(--line-strong);
+}
+/* la sección que va a recibir la fila que estás arrastrando */
+.seccion[data-destino="true"] .tituloSeccion { color: var(--accent-ink); }
+.seccion[data-destino="true"] .regla { border-top-color: var(--accent); }
+.seccion[data-destino="true"] .cuenta { color: var(--accent-ink); }
+
+/* la fila levantada, siguiendo al dedo (portal + fixed: no vive en el flujo de la lista) */
+.sombra {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-vuelo);
+  pointer-events: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  max-width: 80vw;
+  padding: var(--s-2) var(--s-4);
+  border: var(--bw-hair) solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+}
+/* el punto de anclaje: arriba del dedo se apoya por su base; abajo, por su techo (la distancia la pone la Lista) */
+.sombra[data-lado="arriba"] { transform: translate(-50%, -100%); }
+.sombra[data-lado="abajo"] { transform: translate(-50%, 0); }
+.sombraTexto {
+  font-size: var(--fs-item);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sombraDestino {
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+.sombraDestino::before { content: "→ "; }
+
+.cuenta {
+  font-size: var(--fs-seccion-n);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-tight);
+}
+.rotulo {
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: var(--lh-tight);
+}
+.sugerencias {
+  padding: var(--s-4) var(--gutter) var(--s-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.chipItem { max-width: 100%; }

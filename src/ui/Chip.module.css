@@ -1,0 +1,30 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--target);
+  padding: var(--s-2) var(--s-4);
+  border: var(--bw-hair) solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  max-width: 100%;
+  touch-action: manipulation;
+  /* la pulsación larga (borrar un súper) no tiene que abrir el menú del sistema ni seleccionar el texto */
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: background-color var(--dur-instant) var(--ease-std), color var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std), opacity var(--dur-fast) var(--ease-std);
+}
+.chip:active { background: var(--tint); }
+.chip[data-seleccionado="true"] {
+  background: var(--tint);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.chip:disabled { opacity: var(--op-disabled); }
+.icono { display: inline-flex; color: var(--accent-ink); }
+.icono svg { width: 1em; height: 1em; }
+.texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

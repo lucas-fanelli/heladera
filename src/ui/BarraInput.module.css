@@ -1,0 +1,104 @@
+.barra {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--kb-inset);
+  z-index: var(--z-inputbar);
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  height: calc(var(--inputbar-h) + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 0 calc(var(--gutter) + var(--safe-right)) var(--safe-bottom) calc(var(--gutter) + var(--safe-left));
+  background: var(--paper);
+  border-top: var(--bw-hair) solid var(--line);
+}
+
+/* campo estilo renglón: solo borde inferior */
+.campo {
+  position: relative;
+  flex: 1 1 0;
+  min-width: var(--input-min-w);
+  display: flex;
+  align-items: center;
+  border-bottom: var(--bw-field) solid var(--line-strong);
+  transition: border-color var(--dur-fast) var(--ease-std);
+}
+.campo:focus-within { border-color: var(--accent); }
+.input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: var(--target);
+  padding: 0 0 0 var(--s-1);
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--fs-body);   /* ≥ 16px: iOS no hace zoom */
+  line-height: var(--lh-body);
+}
+/* el foco lo muestra el renglón (.campo:focus-within pasa a acento), no el anillo global de :focus-visible:
+   un rectángulo alrededor de un campo que es solo una línea se ve como una caja pegada encima */
+.input:focus-visible { outline: none; }
+.input::placeholder { color: var(--muted); opacity: 1; }
+/* type="search": sin el estilo nativo de campo de búsqueda (iOS lo redondea y le mete lupa/✕); la ✕ es nuestra */
+.input { appearance: none; -webkit-appearance: none; border-radius: 0; }
+.input::-webkit-search-cancel-button, .input::-webkit-search-decoration, .input::-webkit-search-results-button { display: none; -webkit-appearance: none; }
+
+/* espacio reservado para el ×: el input no cambia de ancho cuando aparece */
+.limpiarSlot {
+  flex: none;
+  width: var(--target);
+  height: var(--target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.limpiar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target);
+  height: var(--target);
+  border-radius: 50%;
+  color: var(--muted);
+  touch-action: manipulation;
+  transition: background-color var(--dur-instant) var(--ease-std);
+}
+.limpiar:active { background: var(--tint); }
+.limpiar svg { width: var(--icon-sm); height: var(--icon-sm); }
+
+/* ancho FIJO: el botón no cambia de tamaño al tipear; el rótulo hace ellipsis adentro */
+.boton {
+  flex: 0 0 var(--btn-agregar-w);
+  min-width: 0;
+  min-height: var(--target);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: var(--fs-body);
+  line-height: 1;
+  touch-action: manipulation;
+  transition: opacity var(--dur-fast) var(--ease-std), background-color var(--dur-instant) var(--ease-std);
+}
+.boton:active { background: var(--accent-pressed); }
+.boton[aria-disabled="true"] { opacity: var(--op-disabled); }
+.slot {
+  position: relative;
+  display: grid;
+  align-items: center;
+  line-height: var(--lh-tight);
+  min-width: 0;
+}
+.rotulo {
+  grid-area: 1 / 1;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

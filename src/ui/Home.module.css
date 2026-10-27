@@ -1,0 +1,70 @@
+.home {
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--s-8) + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) calc(var(--s-8) + var(--safe-bottom)) calc(var(--gutter) + var(--safe-left));
+  background: var(--paper);
+  color: var(--ink);
+}
+.contenido {
+  width: 100%;
+  max-width: var(--content-max);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+}
+
+.cabecera { display: flex; flex-direction: column; gap: var(--s-3); }
+.marca {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-fvs);
+  font-size: var(--fs-brand);
+  color: var(--accent-ink);
+}
+.titulo {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-fvs);
+  font-weight: 600;
+  font-size: var(--fs-counter);
+  line-height: var(--lh-tight);
+}
+.texto { color: var(--muted); font-size: var(--fs-item); }
+
+.ultima { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+.listas { display: flex; flex-direction: column; gap: var(--s-2); }
+.listas > li { display: flex; flex-direction: column; }
+
+.oNueva { font-size: var(--fs-meta); color: var(--muted); }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--gutter);
+  background: var(--surface);
+  border: var(--bw-hair) solid var(--line);
+  border-radius: var(--r-lg);
+}
+.subtitulo {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-fvs);
+  font-weight: 600;
+  font-size: var(--fs-sheet-title);
+  line-height: var(--lh-tight);
+}
+.campo { display: flex; flex-direction: column; min-width: 0; }
+
+.miembros { border: none; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.miembros legend { padding: 0; margin-bottom: var(--s-2); }
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--field-min-w)), 1fr));
+  gap: var(--s-3);
+}
+
+.nota { text-align: center; font-size: var(--fs-meta); color: var(--muted); }
+
+/* la cuenta (D23): una oferta discreta, nunca compite con "Abrir tu lista" ni con el form */
+.cuenta { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); text-align: center; }
+.cuentaTexto { font-size: var(--fs-meta); color: var(--muted); }
+.cuentaAcciones { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-2); }

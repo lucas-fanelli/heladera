@@ -1,0 +1,307 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paleta de Heladera</title>
+<style>
+@font-face { font-family: "Fraunces"; src: url(data:font/woff2;base64,__FONT_FRAUNCES__) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "DM Sans"; src: url(data:font/woff2;base64,__FONT_DMSANS__) format("woff2"); font-weight: 100 1000; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url(data:font/woff2;base64,__FONT_MONO__) format("woff2"); font-weight: 100 800; font-display: swap; }
+
+/* ---------- chrome neutral de la página ---------- */
+:root { --c-bg: #ECEDEA; --c-surface: #F7F7F5; --c-ink: #1F2328; --c-muted: #666B73; --c-line: #D5D7D2; --c-ok: #1F7A48; --c-bad: #B23A2A;
+  --c-mono: "JetBrains Mono", Consolas, ui-monospace, monospace; --c-sans: system-ui, "Segoe UI", Roboto, sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-bg: #17191D; --c-surface: #1F2226; --c-ink: #E6E8EC; --c-muted: #969CA6; --c-line: #2E323A; --c-ok: #5FC28A; --c-bad: #F0806E; } }
+:root[data-theme="dark"] { --c-bg: #17191D; --c-surface: #1F2226; --c-ink: #E6E8EC; --c-muted: #969CA6; --c-line: #2E323A; --c-ok: #5FC28A; --c-bad: #F0806E; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--c-bg); color: var(--c-ink); font-family: var(--c-sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 22px 18px 90px; }
+h1 { font-family: var(--c-mono); font-size: clamp(1.3rem, 1rem + 1.4vw, 1.9rem); font-weight: 700; margin: 0 0 4px; }
+h2 { font-family: var(--c-mono); font-size: .95rem; font-weight: 700; margin: 22px 0 8px; letter-spacing: .02em; }
+p { margin: 6px 0; max-width: 78ch; }
+.eyebrow { font-family: var(--c-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--c-muted); font-weight: 600; }
+.layout { display: grid; gap: 22px; grid-template-columns: minmax(0,1fr); align-items: start; margin-top: 12px; }
+@media (min-width: 940px) { .layout { grid-template-columns: 420px minmax(0,1fr); } .preview { position: sticky; top: 12px; } }
+.card { border: 1px solid var(--c-line); border-radius: 14px; background: var(--c-surface); padding: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 10px; }
+.controls .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.controls .lbl { font-family: var(--c-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--c-muted); margin-right: 2px; }
+button.tg { font: 600 12.5px var(--c-sans); padding: 6px 11px; border-radius: 999px; border: 1px solid var(--c-line); background: transparent; color: var(--c-ink); cursor: pointer; }
+button.tg[aria-pressed="true"] { background: var(--c-ink); color: var(--c-bg); border-color: var(--c-ink); }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--c-muted); outline-offset: 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.preset { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 999px; border: 1px solid var(--c-line); background: transparent; color: var(--c-ink); font: 600 12.5px var(--c-sans); cursor: pointer; }
+.preset i { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); display: inline-block; }
+.preset[aria-pressed="true"] { border-color: var(--c-ink); box-shadow: inset 0 0 0 1px var(--c-ink); }
+.tokens { display: grid; gap: 6px; }
+.tok { display: grid; grid-template-columns: 34px minmax(0,1fr) 92px; align-items: center; gap: 10px; padding: 4px 0; }
+.tok input[type="color"] { width: 34px; height: 30px; padding: 0; border: 1px solid var(--c-line); border-radius: 8px; background: transparent; cursor: pointer; }
+.tok label { font-size: 13.5px; }
+.tok label small { display: block; font-family: var(--c-mono); font-size: 10.5px; color: var(--c-muted); }
+.tok input[type="text"] { font-family: var(--c-mono); font-size: 12.5px; padding: 6px 8px; border: 1px solid var(--c-line); border-radius: 8px; background: var(--c-bg); color: var(--c-ink); width: 92px; text-transform: uppercase; }
+.grpTitle { font-family: var(--c-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--c-muted); margin: 12px 0 4px; padding-top: 10px; border-top: 1px solid var(--c-line); }
+.grpTitle:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+.contrast { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cc { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; border: 1px solid var(--c-line); border-radius: 9px; font-family: var(--c-mono); font-size: 11.5px; }
+.cc b { font-size: 12.5px; }
+.cc.ok b { color: var(--c-ok); } .cc.bad b { color: var(--c-bad); }
+.cc span { color: var(--c-muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.actions button { font: 600 12.5px var(--c-sans); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--c-line); background: var(--c-bg); color: var(--c-ink); cursor: pointer; }
+.actions .msg { font-family: var(--c-mono); font-size: 11.5px; color: var(--c-muted); }
+textarea.out { width: 100%; height: 150px; font-family: var(--c-mono); font-size: 11.5px; border: 1px solid var(--c-line); border-radius: 10px; background: var(--c-bg); color: var(--c-ink); padding: 8px; margin-top: 8px; resize: vertical; }
+.note { font-size: 13px; color: var(--c-muted); }
+
+/* ---------- Teléfono · Papel de almacén (tokens editables) ---------- */
+.stage {
+  --paper: #F6F1E7; --surface: #FFFDF8; --ink: #1B1A17; --muted: #6B655A; --line: #DDD6C6; --line-strong: #C7BEA9;
+  --accent: #7B4A2D; --accent-ink: #6E4228; --on-accent: #FFFFFF; --ok: #2A7043; --warn: #946012; --strike: #6B655A;
+  --p1: #7B4A2D; --p2: #2A6F8A; --p3: #5B7A2E; --p4: #B8860B; --toast: #1B1A17; --toast-ink: #F6F1E7;
+  --tint: color-mix(in srgb, var(--accent) 12%, transparent); --scrim: color-mix(in srgb, var(--ink) 40%, transparent); --sheet: var(--surface);
+  --font-display: "Fraunces", Georgia, serif; --display-fvs: "SOFT" 100, "WONK" 0, "opsz" 32; --body: "DM Sans", system-ui, sans-serif;
+}
+.phone { width: 100%; max-width: 375px; margin: 0 auto; aspect-ratio: 375 / 780; border-radius: 34px; padding: 10px; background: #0E0F12; box-shadow: 0 20px 50px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.08); position: relative; }
+.screen { position: relative; height: 100%; border-radius: 26px; overflow: hidden; background: var(--paper); color: var(--ink); font-family: var(--body); display: grid; grid-template-rows: 56px auto minmax(0,1fr) 48px 72px; }
+.top { display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--paper); z-index: 2; }
+.brand { font-family: var(--font-display); font-variation-settings: var(--display-fvs); font-weight: 650; font-size: 22px; letter-spacing: -.01em; margin-right: auto; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--line-strong); font-family: var(--body); font-size: 11.5px; font-weight: 600; color: var(--muted); background: var(--surface); }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.pill.live { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, transparent); } .pill.live i { background: var(--ok); }
+.pill.sync { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); } .pill.sync i { background: var(--warn); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-family: var(--body); font-weight: 700; font-size: 13px; color: var(--on-accent); background: var(--p1); }
+.more { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 16px; line-height: 1; }
+.counter { padding: 14px 20px 6px; display: flex; align-items: baseline; gap: 10px; }
+.counter .num { font-family: var(--font-display); font-variation-settings: var(--display-fvs); font-weight: 700; font-size: 32px; letter-spacing: -.02em; line-height: 1; }
+.counter .match { font-family: var(--body); font-size: 12px; color: var(--muted); display: none; }
+.listwrap { position: relative; overflow: hidden; }
+.list { margin: 0; padding: 0 0 8px; list-style: none; }
+.row { position: relative; display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 14px; height: 56px; padding: 0 16px 0 20px; }
+.row + .row { border-top: 1px solid var(--line); }
+.check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; }
+.check svg { width: 16px; height: 16px; opacity: 0; }
+.row.done .check, .row.hold .check { background: var(--accent); border-color: var(--accent); }
+.row.done .check svg, .row.hold .check svg { opacity: 1; stroke: var(--on-accent); }
+.txt { display: grid; gap: 1px; min-width: 0; }
+.name { font-size: 17.5px; font-weight: 500; letter-spacing: -.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; width: fit-content; max-width: 100%; }
+.row.done .name, .row.hold .name { color: var(--muted); }
+.row.done .name::after, .row.hold .name::after { content: ""; position: absolute; left: -2px; right: -2px; top: 55%; height: 2px; background: var(--strike); border-radius: 1px; }
+.meta { font-family: var(--body); font-size: 12.5px; color: var(--muted); }
+.trail { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 18px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.row.done, .row.dim { opacity: .62; }
+.stage[data-state="filtro"] .row.matchhi { background: var(--tint); }
+.sec { padding: 12px 20px 4px; font-family: var(--body); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.chips { display: flex; gap: 8px; padding: 6px 20px 8px; flex-wrap: wrap; }
+.chip { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; color: var(--ink); }
+.chip.sel { border-color: var(--accent); background: var(--tint); color: var(--accent-ink); }
+.linkbtn { font-family: var(--body); font-size: 12px; font-weight: 700; color: var(--accent-ink); border: 1.5px solid var(--accent-ink); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.donebar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 90%, var(--ink) 10%); font-family: var(--body); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--muted); z-index: 2; }
+.donebar b { color: var(--accent-ink); font-weight: 700; text-transform: none; letter-spacing: 0; font-size: 14px; }
+.inputbar { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 12px 16px 16px; background: var(--paper); border-top: 1px solid var(--line); z-index: 2; }
+.field { position: relative; height: 44px; border: 0 solid var(--line-strong); border-bottom-width: 2px; background: transparent; display: flex; align-items: center; padding: 0 4px; font-size: 16px; color: var(--muted); }
+.field .typed, .field .caret { display: none; }
+.field .typed { color: var(--ink); }
+.field .caret { width: 2px; height: 20px; background: var(--accent); margin-left: 1px; }
+.stage[data-state="filtro"] .field { border-color: var(--accent); }
+.stage[data-state="filtro"] .field .ph { display: none; }
+.stage[data-state="filtro"] .field .typed, .stage[data-state="filtro"] .field .caret { display: inline-block; }
+.add { height: 44px; padding: 0 16px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-family: var(--body); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.add .lbl2 { display: none; }
+.stage[data-state="filtro"] .add .lbl1 { display: none; } .stage[data-state="filtro"] .add .lbl2 { display: inline; }
+.stage[data-state="filtro"] .row.nomatch { display: none; }
+.stage[data-state="filtro"] .counter .match { display: inline; }
+.filter-extra { display: none; } .stage[data-state="filtro"] .filter-extra { display: block; }
+.scrim { display: none; position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+.sheet { display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--sheet); border-radius: 22px 22px 0 0; padding: 12px 20px 22px; box-shadow: 0 -12px 40px rgba(0,0,0,.18); }
+.stage[data-state="quien"] .scrim, .stage[data-state="quien"] .sheet { display: block; }
+.handle { width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 14px; }
+.sheet h4 { margin: 0 0 4px; font-family: var(--font-display); font-variation-settings: var(--display-fvs); font-weight: 700; font-size: 22px; }
+.sheet p { margin: 0 0 12px; font-size: 13.5px; color: var(--muted); }
+.sheet .chips { padding: 0; margin-bottom: 14px; }
+.sheet .chip { height: 40px; padding: 0 16px; font-size: 14px; }
+.sheet .chip.other { border-style: dashed; color: var(--muted); }
+.cta { width: 100%; height: 48px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-family: var(--body); font-weight: 700; font-size: 15px; }
+/* anatomía */
+.anat { margin-top: 14px; border-radius: 16px; background: var(--paper); color: var(--ink); font-family: var(--body); border: 1px solid var(--line); padding: 4px 12px 10px; }
+.anrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 10px 0; }
+.anrow + .anrow { border-top: 1px solid var(--line); }
+.anrow .cap { width: 100%; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.demo-row { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 12px; align-items: center; height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.btn2 { height: 40px; padding: 0 14px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); font-family: var(--body); font-weight: 700; font-size: 14px; }
+.btn-text { font-family: var(--body); font-weight: 700; color: var(--accent-ink); background: none; border: none; font-size: 14px; }
+.btn-conf { font-family: var(--body); font-weight: 700; color: var(--accent-ink); border: 1.5px solid var(--accent-ink); border-radius: 999px; background: transparent; height: 36px; padding: 0 12px; font-size: 13.5px; }
+.toast { display: inline-flex; align-items: center; gap: 14px; height: 44px; padding: 0 12px 0 14px; border-radius: 12px; background: var(--toast); color: var(--toast-ink); font-size: 14px; }
+.toast b { color: var(--toast-ink); font-weight: 800; }
+.people { display: flex; gap: 8px; align-items: center; }
+.people .avatar { width: 28px; height: 28px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ShopList / Heladera · Papel de almacén</div>
+  <h1>Paleta de Heladera</h1>
+  <p>Editá cualquier color y lo ves en el momento en el teléfono y en los componentes. Los tokens de <em>claro</em> y <em>oscuro</em> se editan por separado (el selector de modo cambia lo que ves y lo que editás). Cuando te guste, tocá <strong>Copiar tokens</strong> o <strong>Copiar link</strong> y pasámelo: es exactamente lo que va a la app.</p>
+
+  <div class="layout">
+    <div class="preview">
+      <div class="controls">
+        <div class="grp"><span class="lbl">Modo</span><button class="tg" data-mode="light" aria-pressed="true">Claro</button><button class="tg" data-mode="dark" aria-pressed="false">Oscuro</button></div>
+        <div class="grp"><span class="lbl">Estado</span><button class="tg" data-state="lista" aria-pressed="true">Lista</button><button class="tg" data-state="filtro" aria-pressed="false">Filtrando</button><button class="tg" data-state="quien" aria-pressed="false">¿Quién sos?</button></div>
+      </div>
+      <div class="stage" data-mode="light" data-state="lista">
+        __PHONE__
+        __ANAT__
+      </div>
+    </div>
+
+    <div class="editor">
+      <div class="card">
+        <h2 style="margin-top:0">Presets de acento</h2>
+        <p class="note">Elegido: <strong>Cuero</strong>. Cada preset cambia el acento (rellenos), el acento como texto, el texto sobre acento y el color de la primera persona, en claro y en oscuro. Después podés retocar cualquiera a mano.</p>
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2 style="margin-top:0">Tokens · <span id="modeLabel">claro</span></h2>
+        <div class="tokens" id="tokens"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2 style="margin-top:0">Contraste (WCAG AA en vivo)</h2>
+        <p class="note">Texto normal necesita ≥ 4,5:1; iconos, bordes y texto grande ≥ 3:1. Se recalcula con cada cambio, para el modo que estás viendo.</p>
+        <div class="contrast" id="contrast"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2 style="margin-top:0">Exportar</h2>
+        <div class="actions">
+          <button id="copyTokens">Copiar tokens</button>
+          <button id="copyLink">Copiar link con mi paleta</button>
+          <button id="reset">Restablecer</button>
+          <span class="msg" id="msg"></span>
+        </div>
+        <textarea class="out" id="out" readonly aria-label="Tokens CSS"></textarea>
+        <p class="note">Los cambios se guardan solos en este navegador y en el link (después del #). Si preferís, copiá el texto de arriba y pegámelo.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEFAULTS = {
+    light: { paper:'#F6F1E7', surface:'#FFFDF8', ink:'#1B1A17', muted:'#6B655A', line:'#DDD6C6', 'line-strong':'#C7BEA9',
+             accent:'#7B4A2D', 'accent-ink':'#6E4228', 'on-accent':'#FFFFFF', ok:'#2A7043', warn:'#946012', strike:'#6B655A',
+             p1:'#7B4A2D', p2:'#2A6F8A', p3:'#5B7A2E', p4:'#B8860B', toast:'#1B1A17', 'toast-ink':'#F6F1E7' },
+    dark:  { paper:'#1C1D1A', surface:'#262723', ink:'#EDE7DA', muted:'#A39C8E', line:'#35362F', 'line-strong':'#4A4B43',
+             accent:'#C48A5A', 'accent-ink':'#CD9A70', 'on-accent':'#1B1A17', ok:'#6FB98A', warn:'#E0A44A', strike:'#A39C8E',
+             p1:'#C48A5A', p2:'#5FA3C2', p3:'#8FB05A', p4:'#D9B052', toast:'#EDE7DA', 'toast-ink':'#1B1A17' },
+  };
+  const GROUPS = [
+    { title: 'Papel y tinta', keys: [['paper','Papel','fondo de la pantalla'],['surface','Superficie','hojas, chips, casillas'],['ink','Tinta','texto principal'],['muted','Lápiz','meta, placeholders, tachados'],['line','Renglón','líneas finas'],['line-strong','Bordes','pastillas, chips, input']] },
+    { title: 'Acento', keys: [['accent','Acento (relleno)','botón Agregar, casilla tildada, Soy yo'],['accent-ink','Acento como texto','Vaciar, volver a anotar, chips elegidos'],['on-accent','Texto sobre acento','blanco o tinta'],['strike','Tachado','línea sobre lo comprado']] },
+    { title: 'Estados', keys: [['ok','En vivo','pastilla verde'],['warn','Pendiente / sincronizando','puntito ámbar, pastilla']] },
+    { title: 'Personas', keys: [['p1','Persona 1','tu inicial'],['p2','Persona 2','mamá'],['p3','Persona 3','papá'],['p4','Persona 4','otro']] },
+    { title: 'Toast', keys: [['toast','Toast fondo',''],['toast-ink','Toast texto','']] },
+  ];
+  const PRESETS = [
+    { name:'Cuero (elegido)', light:{accent:'#7B4A2D','accent-ink':'#6E4228','on-accent':'#FFFFFF'}, dark:{accent:'#C48A5A','accent-ink':'#CD9A70','on-accent':'#1B1A17'} },
+    { name:'Rojo imán', light:{accent:'#C93A22','accent-ink':'#B8321C','on-accent':'#FFFFFF'}, dark:{accent:'#F0563D','accent-ink':'#F0563D','on-accent':'#1B1A17'} },
+    { name:'Lacre', light:{accent:'#9E3B2E','accent-ink':'#8F3327','on-accent':'#FFFFFF'}, dark:{accent:'#D9775F','accent-ink':'#E08A74','on-accent':'#1B1A17'} },
+    { name:'Bordó', light:{accent:'#7A2E3B','accent-ink':'#6E2935','on-accent':'#FFFFFF'}, dark:{accent:'#C97183','accent-ink':'#D48A99','on-accent':'#1B1A17'} },
+    { name:'Verde botella', light:{accent:'#3D6B4F','accent-ink':'#355E45','on-accent':'#FFFFFF'}, dark:{accent:'#7FB08F','accent-ink':'#8DBB9C','on-accent':'#1B1A17'} },
+    { name:'Eucalipto', light:{accent:'#4A7A69','accent-ink':'#3F6A5B','on-accent':'#FFFFFF'}, dark:{accent:'#8CB8A8','accent-ink':'#98C2B3','on-accent':'#1B1A17'} },
+    { name:'Azul petróleo', light:{accent:'#2A6F8A','accent-ink':'#235C73','on-accent':'#FFFFFF'}, dark:{accent:'#6FB2CC','accent-ink':'#7FBDD5','on-accent':'#1B1A17'} },
+    { name:'Tinta lavada', light:{accent:'#3B5B8C','accent-ink':'#34507A','on-accent':'#FFFFFF'}, dark:{accent:'#8FA9D6','accent-ink':'#9DB4DC','on-accent':'#1B1A17'} },
+    { name:'Ocre tostado', light:{accent:'#8F5E14','accent-ink':'#7F5310','on-accent':'#FFFFFF'}, dark:{accent:'#D9A441','accent-ink':'#E0B05A','on-accent':'#1B1A17'} },
+    { name:'Grafito', light:{accent:'#3A3A36','accent-ink':'#2E2E2A','on-accent':'#F6F1E7'}, dark:{accent:'#CFC8B8','accent-ink':'#D9D2C3','on-accent':'#1B1A17'} },
+  ];
+  const stage = document.querySelector('.stage');
+  const root = document.documentElement;
+  let state = load();
+  let mode = 'light';
+
+  function load() {
+    try { const h = new URLSearchParams(location.hash.slice(1)).get('c'); if (h) return JSON.parse(atob(h.replace(/-/g,'+').replace(/_/g,'/'))); } catch {}
+    try { const s = localStorage.getItem('heladera-paleta'); if (s) return JSON.parse(s); } catch {}
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+  function save() {
+    localStorage.setItem('heladera-paleta', JSON.stringify(state));
+    const enc = btoa(JSON.stringify(state)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    history.replaceState(null, '', '#c=' + enc);
+  }
+  function apply() {
+    const t = state[mode];
+    for (const k in t) stage.style.setProperty('--' + k, t[k]);
+    stage.dataset.mode = mode; root.dataset.theme = mode;
+    document.getElementById('modeLabel').textContent = mode === 'light' ? 'claro' : 'oscuro';
+    document.querySelectorAll('button[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    renderTokens(); renderContrast(); renderOut(); markPreset(); save();
+  }
+  function renderTokens() {
+    const box = document.getElementById('tokens'); box.innerHTML = '';
+    for (const g of GROUPS) {
+      const h = document.createElement('div'); h.className = 'grpTitle'; h.textContent = g.title; box.appendChild(h);
+      for (const [key, label, hint] of g.keys) {
+        const val = state[mode][key];
+        const row = document.createElement('div'); row.className = 'tok';
+        row.innerHTML = `<input type="color" value="${val}" aria-label="${label}"><label>${label}<small>--${key}${hint ? ' · ' + hint : ''}</small></label><input type="text" value="${val}" aria-label="${label} hex" maxlength="7" spellcheck="false">`;
+        const [color, text] = row.querySelectorAll('input');
+        color.addEventListener('input', () => { state[mode][key] = color.value.toUpperCase(); text.value = state[mode][key]; applyLive(); });
+        text.addEventListener('change', () => { let v = text.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (/^#[0-9a-fA-F]{6}$/.test(v)) { state[mode][key] = v.toUpperCase(); color.value = v; applyLive(); } else { text.value = state[mode][key]; } });
+        box.appendChild(row);
+      }
+    }
+  }
+  function applyLive() { const t = state[mode]; for (const k in t) stage.style.setProperty('--' + k, t[k]); renderContrast(); renderOut(); markPreset(); save(); }
+  function lum(hex) { const [r,g,b] = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)); const f = v => { v/=255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }; return .2126*f(r)+.7152*f(g)+.0722*f(b); }
+  function cr(a,b) { const l1 = lum(a), l2 = lum(b); const [hi,lo] = l1 > l2 ? [l1,l2] : [l2,l1]; return (hi+.05)/(lo+.05); }
+  function renderContrast() {
+    const t = state[mode];
+    const checks = [
+      ['Tinta / papel', t.ink, t.paper, 4.5], ['Lápiz / papel', t.muted, t.paper, 4.5], ['Lápiz / superficie', t.muted, t.surface, 4.5],
+      ['Acento texto / papel', t['accent-ink'], t.paper, 4.5], ['Texto sobre acento', t['on-accent'], t.accent, 4.5],
+      ['Acento relleno / papel', t.accent, t.paper, 3], ['En vivo / papel', t.ok, t.paper, 4.5], ['Ámbar / papel', t.warn, t.paper, 4.5],
+      ['Casilla borde / papel', t.ink, t.paper, 3], ['Toast texto / fondo', t['toast-ink'], t.toast, 4.5],
+      ['P1 sobre acento (inicial)', t['on-accent'], t.p1, 3], ['Bordes / papel', t['line-strong'], t.paper, 1.5],
+    ];
+    const box = document.getElementById('contrast'); box.innerHTML = '';
+    for (const [name, a, b, min] of checks) {
+      const v = cr(a,b); const ok = v >= min;
+      const el = document.createElement('div'); el.className = 'cc ' + (ok ? 'ok' : 'bad');
+      el.innerHTML = `<span>${name}</span><b>${v.toFixed(2)}${ok ? ' ✓' : ' ✗'}</b>`; box.appendChild(el);
+    }
+  }
+  function renderOut() {
+    const lines = [];
+    for (const m of ['light','dark']) {
+      lines.push(`/* Papel de almacén · ${m === 'light' ? 'claro' : 'oscuro'} */`);
+      lines.push((m === 'light' ? ':root {' : '@media (prefers-color-scheme: dark) { :root {'));
+      for (const k in state[m]) lines.push(`  --${k}: ${state[m][k]};`);
+      lines.push(m === 'light' ? '}' : '} }');
+      lines.push('');
+    }
+    document.getElementById('out').value = lines.join('\n');
+  }
+  function renderPresets() {
+    const box = document.getElementById('presets'); box.innerHTML = '';
+    PRESETS.forEach((p, i) => {
+      const b = document.createElement('button'); b.className = 'preset'; b.dataset.i = i; b.setAttribute('aria-pressed','false');
+      b.innerHTML = `<i style="background:${p.light.accent}"></i>${p.name}`;
+      b.addEventListener('click', () => { for (const m of ['light','dark']) { Object.assign(state[m], p[m]); state[m].p1 = p[m].accent; } apply(); flash(`Preset: ${p.name}`); });
+      box.appendChild(b);
+    });
+  }
+  function markPreset() {
+    document.querySelectorAll('.preset').forEach(b => { const p = PRESETS[b.dataset.i]; const on = ['light','dark'].every(m => Object.keys(p[m]).every(k => (state[m][k]||'').toUpperCase() === p[m][k].toUpperCase())); b.setAttribute('aria-pressed', String(on)); });
+  }
+  function flash(msg) { const el = document.getElementById('msg'); el.textContent = msg; clearTimeout(flash.t); flash.t = setTimeout(() => el.textContent = '', 2500); }
+  document.querySelectorAll('button[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; apply(); }));
+  document.querySelectorAll('button[data-state]').forEach(b => b.addEventListener('click', () => { stage.dataset.state = b.dataset.state; document.querySelectorAll('button[data-state]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+  document.getElementById('copyTokens').addEventListener('click', async () => { try { await navigator.clipboard.writeText(document.getElementById('out').value); flash('Tokens copiados'); } catch { document.getElementById('out').select(); flash('Seleccioná y copiá el texto'); } });
+  document.getElementById('copyLink').addEventListener('click', async () => { save(); try { await navigator.clipboard.writeText(location.href); flash('Link copiado'); } catch { flash('Copiá la URL de la barra del navegador'); } });
+  document.getElementById('reset').addEventListener('click', () => { state = JSON.parse(JSON.stringify(DEFAULTS)); apply(); flash('Restablecido'); });
+  renderPresets();
+  mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  apply();
+})();
+</script>

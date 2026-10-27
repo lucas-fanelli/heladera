@@ -1,0 +1,327 @@
+<section id="opciones">
+  <div class="prose">
+  <h2>3. Opciones de arquitectura</h2>
+  <p>Tres propuestas independientes, cada una diseñada a fondo desde un ángulo distinto, y un juez técnico que las puntuó con los mismos siete criterios. Lo que cambia entre ellas es <strong>quién mantiene el servidor</strong> y <strong>quién escribe el motor de sincronización offline</strong>.</p>
+  </div>
+
+  <figure>
+    <div class="fig-wrap">
+    <svg class="dia" viewBox="0 0 960 330" role="img" aria-label="Comparación de las tres arquitecturas: en Firebase los teléfonos hablan directo con Firestore usando el SDK que trae realtime y caché offline; en la opción auto-hospedada hablan con un proceso Node con SQLite que corre en una máquina que vos mantenés prendida y la cola offline la escribís vos; en Cloudflare hablan con un Worker y un Durable Object con SQLite y también escribís vos el log de operaciones.">
+      <defs>
+        <marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+        <marker id="ah1p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--pen)"/></marker>
+      </defs>
+      <!-- Column A: Firebase -->
+      <g>
+        <text x="160" y="24" text-anchor="middle" class="title pen-text">A · Firebase (recomendada)</text>
+        <rect x="70" y="40" width="30" height="50" rx="5" class="box"/><rect x="145" y="40" width="30" height="50" rx="5" class="box"/><rect x="220" y="40" width="30" height="50" rx="5" class="box"/>
+        <text x="160" y="106" text-anchor="middle" class="lbl">teléfonos · PWA + SDK Firestore</text>
+        <text x="160" y="120" text-anchor="middle" class="lbl pen-text">caché offline + cola: las trae el SDK</text>
+        <line x1="160" y1="128" x2="160" y2="172" class="arrow pen" marker-end="url(#ah1p)" marker-start="url(#ah1p)"/>
+        <text x="172" y="154" class="lbl">realtime (stream)</text>
+        <rect x="30" y="180" width="260" height="120" rx="10" class="arrow dash" style="fill:none;opacity:.6"/>
+        <text x="40" y="198" class="lbl">lo mantiene Google · gratis, sin tarjeta</text>
+        <rect x="55" y="210" width="210" height="34" rx="7" class="box pen-fill"/>
+        <text x="160" y="232" text-anchor="middle" style="font-size:13px">Firestore <tspan class="lbl">(datos + reglas)</tspan></text>
+        <rect x="55" y="254" width="210" height="34" rx="7" class="box"/>
+        <text x="160" y="276" text-anchor="middle" style="font-size:13px">Hosting <tspan class="lbl">(archivos de la PWA, HTTPS)</tspan></text>
+        <text x="160" y="322" text-anchor="middle" class="lbl">servidor propio: ninguno</text>
+      </g>
+      <!-- Column B: Self-hosted -->
+      <g>
+        <text x="480" y="24" text-anchor="middle" class="title">B · Node + SQLite auto-hospedado</text>
+        <rect x="390" y="40" width="30" height="50" rx="5" class="box"/><rect x="465" y="40" width="30" height="50" rx="5" class="box"/><rect x="540" y="40" width="30" height="50" rx="5" class="box"/>
+        <text x="480" y="106" text-anchor="middle" class="lbl">teléfonos · PWA</text>
+        <text x="480" y="120" text-anchor="middle" class="lbl" style="fill:var(--magnet)">cola offline + reconexión: las escribís vos</text>
+        <line x1="480" y1="128" x2="480" y2="172" class="arrow" marker-end="url(#ah1)" marker-start="url(#ah1)"/>
+        <text x="492" y="154" class="lbl">HTTP + SSE</text>
+        <rect x="350" y="180" width="260" height="120" rx="10" class="arrow dash" style="fill:none;opacity:.6"/>
+        <text x="360" y="198" class="lbl">lo mantenés vos · prendido 24/7</text>
+        <rect x="375" y="210" width="210" height="34" rx="7" class="box soft"/>
+        <text x="480" y="232" text-anchor="middle" style="font-size:13px">proceso Node <tspan class="lbl">(API + SSE + estáticos)</tspan></text>
+        <rect x="375" y="254" width="210" height="34" rx="7" class="box"/>
+        <text x="480" y="276" text-anchor="middle" style="font-size:13px">SQLite <tspan class="lbl">(un archivo .db en disco)</tspan></text>
+        <text x="480" y="322" text-anchor="middle" class="lbl">tu PC + Tailscale ($0) · Fly.io ~$3 · RPi/VPS</text>
+      </g>
+      <!-- Column C: Cloudflare -->
+      <g>
+        <text x="800" y="24" text-anchor="middle" class="title">C · Cloudflare Workers + Durable Object</text>
+        <rect x="710" y="40" width="30" height="50" rx="5" class="box"/><rect x="785" y="40" width="30" height="50" rx="5" class="box"/><rect x="860" y="40" width="30" height="50" rx="5" class="box"/>
+        <text x="800" y="106" text-anchor="middle" class="lbl">teléfonos · PWA</text>
+        <text x="800" y="120" text-anchor="middle" class="lbl" style="fill:var(--magnet)">op-log + IndexedDB: los escribís vos</text>
+        <line x1="800" y1="128" x2="800" y2="172" class="arrow" marker-end="url(#ah1)" marker-start="url(#ah1)"/>
+        <text x="812" y="154" class="lbl">WebSocket / HTTP</text>
+        <rect x="670" y="180" width="260" height="120" rx="10" class="arrow dash" style="fill:none;opacity:.6"/>
+        <text x="680" y="198" class="lbl">lo mantiene Cloudflare · plan gratis</text>
+        <rect x="695" y="210" width="210" height="34" rx="7" class="box soft"/>
+        <text x="800" y="232" text-anchor="middle" style="font-size:13px">Worker <tspan class="lbl">(router + estáticos)</tspan></text>
+        <rect x="695" y="254" width="210" height="34" rx="7" class="box"/>
+        <text x="800" y="276" text-anchor="middle" style="font-size:13px">Durable Object <tspan class="lbl">(SQLite, 1 por lista)</tspan></text>
+        <text x="800" y="322" text-anchor="middle" class="lbl">sin servidor propio · curva de aprendizaje</text>
+      </g>
+      <!-- separators -->
+      <line x1="320" y1="14" x2="320" y2="326" class="arrow faint"/>
+      <line x1="640" y1="14" x2="640" y2="326" class="arrow faint"/>
+    </svg>
+    </div>
+    <figcaption>La diferencia que importa: en A el offline y el tiempo real vienen en el SDK y no hay nada prendido que sea tuyo; en B y C el motor de sincronización lo escribís vos, y en B además necesitás una máquina encendida.</figcaption>
+  </figure>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Criterio</th><th>A · Firebase</th><th>B · Node + SQLite</th><th>C · Cloudflare DO</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Que ande años sin tocar nada</strong></td><td class="win">Nada corre en tu PC ni en un contenedor; el plan gratis no “duerme” ni pausa.</td><td>Depende de que algo esté prendido: tu PC (reinicios, suspensión) o un host pago.</td><td>Sin servidor propio; DOs gratis existen desde 2025 (menos historial).</td></tr>
+      <tr><td><strong>Offline en el súper</strong></td><td class="win">Caché persistente + cola de escrituras + merge por campo, del SDK. No lo escribís vos.</td><td>Cola en localStorage + rebase + reconexión SSE, escrita y mantenida por vos.</td><td>Op-log idempotente + IndexedDB + reconexión WS, escritos por vos.</td></tr>
+      <tr><td><strong>URL HTTPS pública hoy</strong></td><td class="win">Crear proyecto + <code>firebase deploy</code> ≈ 1 h.</td><td>Tailscale Funnel en 20 min, pero atado a tu PC; sino Fly/VPS con tarjeta.</td><td><code>wrangler deploy</code>, pero la curva de Durable Objects se come el día.</td></tr>
+      <tr><td><strong>Costo mensual</strong></td><td class="win">$0 sin tarjeta; si se pasa la cuota, corta (no factura).</td><td>$0 solo con tu PC; “sin mantenimiento” = $2–5/mes + tarjeta.</td><td>$0 sin tarjeta.</td></tr>
+      <tr><td><strong>Verificable en local</strong></td><td>Emuladores piden Java; alternativa: lista de prueba contra el proyecto real.</td><td class="win">Todo con curl y DevTools, sin cuentas.</td><td><code>wrangler dev</code> emula bien; hibernación solo en prod.</td></tr>
+      <tr><td><strong>Complejidad para 4 personas</strong></td><td class="win">La de menos código: sin servidor, sin protocolo propio.</td><td>Servidor + SSE + cola + Docker + servicio de Windows + backups.</td><td>Motor de sync completo a mano: sobreingeniería admitida.</td></tr>
+      <tr><td><strong>Lock-in / control</strong></td><td>Alto (reglas, SDK, modelo). Mitigado: datos en KB, módulo <code>db</code> aislado, botón Exportar JSON.</td><td class="win">Ninguno: contenedor + archivo.</td><td>Medio: HTTP/WS JSON + SQLite; portable en ~1 día.</td></tr>
+      <tr><td><strong>Horas hasta MVP</strong></td><td>5–6 h mínimo · 8–12 h completo</td><td>5–6 h sin robustez offline · 12–16 h completo</td><td>7–9 h con polling · 14–19 h completo</td></tr>
+      <tr><td><strong>Puntaje del juez</strong></td><td class="score win"><span class="bar" style="width:85px"></span>8.5</td><td class="score"><span class="bar" style="width:55px;opacity:.4"></span>5.5</td><td class="score"><span class="bar" style="width:65px;opacity:.4"></span>6.5</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose">
+  <div class="callout warn">
+    <div class="eyebrow">Supuesto que pesa mucho acá</div>
+    <p style="margin:6px 0 0">Al panel le pasé como supuesto que <em>no hay ninguna máquina prendida 24/7 en tu casa</em> (la PC es de desarrollo). Si tenés una Raspberry, un NAS o un VPS que ya usás, la opción B sube bastante: se vuelve $0 real, sin Google, y con verificación local perfecta. Es la primera pregunta de §13.</p>
+  </div>
+  <p>Y una verdad incómoda que el panel dijo y yo repito: Google Keep compartido o Bring! resuelven el 90 % sin código. Lo que justifica hacerlo propio es exactamente lo que pediste: la pegatina en la heladera, “quién agregó / quién compró”, voseo, y que sea tuyo. Vale la pena — pero conviene saber que se elige por eso.</p>
+  </div>
+</section>
+
+<section id="recomendada">
+  <div class="prose">
+  <h2>4. Arquitectura recomendada</h2>
+  <p><strong>PWA estática (Vite + React 19 + TypeScript + Motion) que habla directo con Firestore</strong>, servida por Firebase Hosting, con Auth anónima solo para que las reglas tengan un <code>uid</code>. No hay servidor propio, no hay API REST propia: el “backend” son las reglas de seguridad de Firestore. <strong>React y no Preact</strong> (cambio respecto de v1): el movimiento de la lista es requisito y se hace con Motion, que solo soporta React oficialmente; Preact vía <code>preact/compat</code> “anda” pero tiene una diferencia de timing de efectos que ya rompió exit animations en 2026 y ningún canal de soporte. Cuesta ~48 kB gz más; Motion pesa 34 y Firestore 100+; se precachea una vez. Si querés Preact igual, hay un spike de 30 min descrito en §13 (D12).</p>
+  <p><strong>Dependencias, explícitas.</strong> La UI depende de dos abstracciones y nada más: una <em>URL</em> (“me abrieron en <code>/l/&lt;id&gt;</code>, quizás con <code>?anotar</code>”) y una interfaz <code>Db</code> con 8 operaciones + <code>suscribir</code>. Detrás de <code>Db</code> hay tres implementaciones intercambiables: Firestore (producción), Node + SQLite (alternativa B) y una <em>fake en memoria</em> (tests y modo demo). Delante de la URL hay los accesos rápidos que quieras (ícono, link, QR, NFC, un atajo). Ni la pegatina ni Firebase se filtran a otra capa.</p>
+  <details>
+    <summary>¿Por qué PWA y no una app nativa?</summary>
+    <p style="font-size:15px">Una PWA es una web con un <em>manifest</em> (ícono, pantalla completa) y un <em>service worker</em> (caché para abrir sin señal); en Android Chrome se instala como un APK generado por Google y captura sus URLs; en iPhone es “sitio agregado al inicio”. Gana acá por: <strong>distribución = un link</strong> (sin Play Store USD 25 / App Store USD 99 al año + Mac, sin revisión, sin APKs de “fuentes desconocidas”), <strong>cero cuentas</strong>, <strong>un solo código</strong> para Android + iPhone + PC, <strong>$0 y sin plataforma que mantener</strong>, y porque todo lo que la lista necesita (tiempo real, offline, tildar, instalable) la web lo hace bien. Nativa gana en push confiable y sync en segundo plano (iOS no tiene background sync en web), en que el NFC abra la app y no Safari en iPhone, y en integración fina (widgets, Siri). Nada de eso está en el diseño. Si algún día hace falta, la misma app React se envuelve con Capacitor y va a las stores: es una implementación más del mismo contrato, no un rediseño.</p>
+  </details>
+  </div>
+  <div class="grid-3">
+    <div class="card"><div class="eyebrow">Cliente</div><h4 style="margin-top:6px">PWA</h4><p style="font-size:15px;margin:6px 0 0">Vite + React 19 + TS + Motion (layout animations). Una sola pantalla + hojas (sheets). <code>vite-plugin-pwa</code> (Workbox) precachea el shell; el manifest la hace instalable. Módulo <code>db</code> aislado: es la única capa que sabe que existe Firestore.</p></div>
+    <div class="card"><div class="eyebrow">Datos + tiempo real + offline</div><h4 style="margin-top:6px">Firestore</h4><p style="font-size:15px;margin:6px 0 0">Colección <code>listas/{id}</code> con subcolecciones <code>items</code>, <code>miembros</code>, <code>meta</code>. <code>persistentLocalCache</code> (IndexedDB) + <code>onSnapshot</code>: la UI se pinta siempre desde la caché local; el SDK sincroniza. Región <code>southamerica-east1</code>.</p></div>
+    <div class="card"><div class="eyebrow">Acceso + entrega</div><h4 style="margin-top:6px">Hosting + Auth anónima</h4><p style="font-size:15px;margin:6px 0 0">HTTPS en <code>&lt;proyecto&gt;.web.app</code>, rewrite SPA, redirect corto <code>/h → /l/&lt;id&gt;</code> para el tag. Auth anónima da un <code>uid</code> por dispositivo sin que nadie “inicie sesión”.</p></div>
+  </div>
+
+  <figure>
+    <div class="fig-wrap">
+    <svg class="dia" viewBox="0 0 900 330" role="img" aria-label="Flujo de datos en un teléfono: la interfaz se pinta solo desde la caché local de Firestore en IndexedDB; cada acción escribe en esa caché y en la cola de mutaciones; el SDK manda la cola y recibe deltas por un stream cuando hay señal, y Firestore reparte los cambios a los otros teléfonos. Todo lo que está a la izquierda de la línea 'sin señal' sigue funcionando offline.">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+        <marker id="ah2p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--pen)"/></marker>
+      </defs>
+      <!-- phone frame -->
+      <rect x="20" y="20" width="520" height="290" rx="14" class="box soft" style="stroke-dasharray:4 4;opacity:.9"/>
+      <text x="34" y="42" class="lbl">TELÉFONO DE MAMÁ (PWA)</text>
+      <!-- UI -->
+      <rect x="40" y="70" width="150" height="70" rx="8" class="box"/>
+      <text x="115" y="98" text-anchor="middle" style="font-size:13px;font-weight:700">Interfaz</text>
+      <text x="115" y="116" text-anchor="middle" class="lbl">lista · tildar · anotar</text>
+      <!-- cache -->
+      <rect x="260" y="70" width="180" height="70" rx="8" class="box pen-fill"/>
+      <text x="350" y="98" text-anchor="middle" style="font-size:13px;font-weight:700">Caché local</text>
+      <text x="350" y="116" text-anchor="middle" class="lbl">IndexedDB · copia de la lista</text>
+      <!-- queue -->
+      <rect x="260" y="180" width="180" height="70" rx="8" class="box"/>
+      <text x="350" y="208" text-anchor="middle" style="font-size:13px;font-weight:700">Cola de escrituras</text>
+      <text x="350" y="226" text-anchor="middle" class="lbl">sobrevive a cerrar la app</text>
+      <!-- SDK label -->
+      <rect x="240" y="56" width="220" height="210" rx="12" class="arrow faint dash" style="fill:none"/>
+      <text x="470" y="270" text-anchor="end" class="lbl">SDK de Firestore</text>
+      <!-- arrows UI <-> cache -->
+      <line x1="192" y1="92" x2="258" y2="92" class="arrow pen" marker-end="url(#ah2p)"/>
+      <text x="225" y="84" text-anchor="middle" class="lbl pen-text">se pinta desde acá</text>
+      <path d="M190,120 L225,120 L225,215 L258,215" class="arrow" marker-end="url(#ah2)"/>
+      <text x="40" y="170" class="lbl">cada acción escribe en</text>
+      <text x="40" y="184" class="lbl">caché + cola (optimista)</text>
+      <!-- offline line -->
+      <line x1="580" y1="30" x2="580" y2="300" class="arrow dash" style="stroke:var(--magnet);stroke-width:1.5"/>
+      <text x="580" y="316" text-anchor="middle" class="lbl" style="fill:var(--magnet)">sin señal: todo lo de la izquierda sigue andando</text>
+      <!-- Firestore -->
+      <rect x="640" y="110" width="150" height="90" rx="10" class="box pen"/>
+      <text x="715" y="146" text-anchor="middle" style="font-size:14px;font-weight:700">Firestore</text>
+      <text x="715" y="166" text-anchor="middle" class="lbl">reglas de seguridad</text>
+      <text x="715" y="180" text-anchor="middle" class="lbl">1 doc por ítem</text>
+      <!-- arrows sdk <-> firestore -->
+      <line x1="442" y1="100" x2="638" y2="135" class="arrow pen" marker-start="url(#ah2p)"/>
+      <text x="548" y="98" text-anchor="middle" class="lbl pen-text">stream: solo lo que cambió</text>
+      <line x1="442" y1="215" x2="638" y2="175" class="arrow" marker-end="url(#ah2)"/>
+      <text x="548" y="212" text-anchor="middle" class="lbl">al volver la señal: cola en orden,</text>
+      <text x="548" y="226" text-anchor="middle" class="lbl">cada escritura exactamente una vez</text>
+      <!-- other phones -->
+      <rect x="840" y="60" width="34" height="56" rx="6" class="box"/>
+      <rect x="840" y="200" width="34" height="56" rx="6" class="box"/>
+      <text x="857" y="52" text-anchor="middle" class="lbl">papá</text>
+      <text x="857" y="272" text-anchor="middle" class="lbl">vos</text>
+      <path d="M792,140 C815,140 815,88 838,88" class="arrow pen" marker-end="url(#ah2p)"/>
+      <path d="M792,170 C815,170 815,228 838,228" class="arrow pen" marker-end="url(#ah2p)"/>
+      <text x="812" y="160" text-anchor="middle" class="lbl">&lt;0,5 s</text>
+    </svg>
+    </div>
+    <figcaption>Regla de oro del cliente: la interfaz se renderiza únicamente desde la caché local (<code>onSnapshot</code>); nunca “setea estado a mano”. Así online y offline son el mismo código, y lo optimista lo hace el SDK.</figcaption>
+  </figure>
+
+  <div class="prose">
+  <h3>Injertos de las otras propuestas</h3>
+  <ul>
+    <li><strong>Link corto genérico</strong> (de C): <code>https://&lt;proyecto&gt;.web.app/h</code> redirige (301) a <code>/l/&lt;listId&gt;</code>. Sirve para la pegatina, para un QR impreso, para un favorito. Rotar el secreto = editar una línea de <code>firebase.json</code>, sin regrabar nada.</li>
+    <li><strong>Cabeceras de Hosting</strong> (de B): <code>Referrer-Policy: no-referrer</code> (la URL es un secreto), <code>Cache-Control: no-cache</code> para <code>index.html</code>, <code>sw.js</code> y el manifest, y una CSP básica.</li>
+    <li><strong>Semilla de sugerencias</strong> (de B): ~40 productos comunes (leche, yerba, pan, huevos, dulce de leche…) al crear la lista, para que el autocompletar no arranque vacío. Y aviso de duplicado antes de agregar.</li>
+    <li><strong>Exportar JSON</strong> desde el menú, y un segundo Owner en el proyecto de Firebase (otro Gmail de confianza) para no perder la app si perdés la cuenta.</li>
+  </ul>
+  </div>
+</section>
+
+<section id="datos">
+  <div class="prose">
+  <h2>5. Modelo de datos y “API”</h2>
+  <p>No hay endpoints propios: el contrato son <em>paths de Firestore + reglas</em>. Todo lo que el cliente puede hacer está en 8 operaciones del módulo <code>db</code>.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="eyebrow">Documentos</div>
+<pre style="margin:10px 0 0"><code>listas/{listId}                 ← id aleatorio 20 chars (el secreto)
+  nombre, creadaEn, esquema: 1
+
+listas/{listId}/miembros/{memberId}
+  nombre ("Mamá"), color, creadoEn
+  · memberId ≠ uid: es "la persona", elegida en
+    cada teléfono; 2 teléfonos = mismo memberId
+
+listas/{listId}/items/{itemId}  ← id generado en cliente
+  texto, textoNorm, estado: pendiente|comprado|borrado
+  agregadoEn, agregadoPor (memberId), agregadoPorNombre
+  compradoEn, compradoPor, compradoPorNombre
+  borradoEn, actualizadoEn        ← todos serverTimestamp()
+
+listas/{listId}/meta/sugerencias ← 1 doc, un mapa
+  entradas: { textoNorm: { texto, veces, ultimaVez } }</code></pre>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Operaciones del módulo <code>db</code></div>
+      <ol style="font-size:15px;margin:10px 0 0;padding-left:1.2em">
+        <li><code>crearLista(nombre, miembros[])</code> → batch: lista + miembros + sugerencias con semilla.</li>
+        <li><code>elegirMiembro(memberId | nombreNuevo)</code> → crea el miembro si no existe; guarda <code>memberId</code> en localStorage.</li>
+        <li><code>agregarItem(texto)</code> → set en <code>items/{nuevoId}</code> + <code>increment</code> en sugerencias (mismo batch).</li>
+        <li><code>marcarComprado(itemId, bool)</code> → update parcial de <code>estado</code>, <code>compradoEn/Por</code>.</li>
+        <li><code>editarItem(itemId, texto)</code> → update solo del texto (+ <code>textoNorm</code>).</li>
+        <li><code>borrarItem(itemId)</code> / <code>deshacer</code> → <code>estado: borrado</code> / vuelta a pendiente. Nunca <code>deleteDoc</code>.</li>
+        <li><code>vaciarComprados()</code> → batch de borrados lógicos (≤ 500).</li>
+        <li><code>suscribir(listId, cb)</code> → <code>onSnapshot</code> de ítems activos, miembros y sugerencias, con <code>includeMetadataChanges</code> para el puntito “pendiente de sincronizar”.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="prose">
+  <h3>Decisiones de modelo que importan</h3>
+  <ul>
+    <li><strong>Borrado lógico siempre.</strong> Si mamá tilda offline y papá borra online, dos <em>updates</em> se fusionan; un <em>delete</em> haría fallar la escritura encolada de mamá. Además hace trivial el “Deshacer”. Los borrados no se leen (la query filtra por estado) y crecen ~500 KB/año: irrelevante.</li>
+    <li><strong>IDs de ítem generados en el cliente.</strong> “Agregar” es un <code>set</code> sobre un id fijo: reintentar nunca duplica.</li>
+    <li><strong>Identidad por <code>memberId</code>, no por <code>uid</code>.</strong> El uid anónimo cambia entre Safari y la PWA instalada en iPhone; la persona no. Renombrar a “Mamá” actualiza un doc y la UI resuelve el nombre al pintar (join en cliente); <code>agregadoPorNombre</code> queda como respaldo.</li>
+    <li><strong>Conflictos: última escritura gana por campo.</strong> Mamá marca comprado offline y papá edita el texto online → quedan los dos cambios. Los dos togglean el mismo ítem → gana el último en llegar. Caso raro “mamá compró / papá borró”: gana el último; si molesta, se separa en dos timestamps (<code>compradoEn</code> vs <code>borradoEn</code>) y se deriva el estado. No lo hago en v1. La tabla completa está en §6.</li>
+    <li><strong>Deduplicación determinista.</strong> Si dos personas anotan lo mismo sin verse (mamá offline en el súper, papá en casa), llegan dos documentos con el mismo <code>textoNorm</code>. Cuando <em>ambos ya están confirmados por el servidor</em> (sin <code>hasPendingWrites</code>, timestamps finales), cualquier cliente que lo note conserva el más antiguo (por <code>agregadoEn</code>, desempate por id) y marca el otro como borrado. Todos aplican la misma regla → convergen; si dos la aplican a la vez es idempotente; como es borrado lógico, no se pierde nada. Toast: “Papá también anotó yogur; los junté”.</li>
+    <li><strong>Normalización (<code>textoNorm</code>):</strong> minúsculas, sin tildes, espacios colapsados; la <strong>ñ se conserva</strong> (“ñoquis” ≠ “noquis”); emojis y signos se quitan; plural simple se iguala para el <em>filtro</em> pero no para la clave. Es la clave de duplicados, sugerencias y del incremento en Firestore: se escribe con <code>FieldPath</code> para que “coca 1.5 l” no se anide como <code>coca → 1 → 5 l</code>.</li>
+    <li><strong>Sugerencias en un solo documento</strong> (mapa) → 1 lectura para tener todo el historial; el vocabulario de una casa son cientos de entradas contra un límite de ~8.000.</li>
+    <li><strong>Sin índices compuestos:</strong> la query activa es <code>where('estado','in',['pendiente','comprado'])</code>; el orden se hace en el cliente (&lt;100 docs).</li>
+  </ul>
+  <details>
+    <summary>Reglas de seguridad (borrador exacto a desplegar)</summary>
+<pre><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function auth() { return request.auth != null; }
+    function esStr(v, max) { return v is string &amp;&amp; v.size() &gt; 0 &amp;&amp; v.size() &lt;= max; }
+    // las 11 claves de un ítem: exactamente esas (hasOnly + hasAll), así ningún cliente crea ítems a medias
+    function clavesItem() { return ['texto','textoNorm','estado','agregadoEn','agregadoPor','agregadoPorNombre','compradoEn','compradoPor','compradoPorNombre','borradoEn','actualizadoEn']; }
+
+    match /listas/{listId} {
+      allow get: if auth();
+      allow list: if false;                       // nadie enumera listas: la URL es la llave
+      allow create: if auth()
+        &amp;&amp; request.resource.data.keys().hasOnly(['nombre','creadaEn','esquema'])
+        &amp;&amp; esStr(request.resource.data.nombre, 60);
+      allow update: if auth()
+        &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre'])
+        &amp;&amp; esStr(request.resource.data.nombre, 60);
+      allow delete: if false;
+
+      match /miembros/{memberId} {
+        allow read: if auth();
+        allow create, update: if auth()
+          &amp;&amp; request.resource.data.keys().hasOnly(['nombre','color','creadoEn'])
+          &amp;&amp; esStr(request.resource.data.nombre, 30);
+        allow delete: if false;
+      }
+      match /items/{itemId} {
+        allow read: if auth();
+        allow create: if auth()
+          &amp;&amp; request.resource.data.keys().hasOnly(clavesItem()) &amp;&amp; request.resource.data.keys().hasAll(clavesItem())
+          &amp;&amp; esStr(request.resource.data.texto, 120)
+          &amp;&amp; request.resource.data.estado == 'pendiente';
+        allow update: if auth()
+          &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny(['agregadoPor','agregadoEn'])
+          &amp;&amp; esStr(request.resource.data.texto, 120)
+          &amp;&amp; request.resource.data.estado in ['pendiente','comprado','borrado'];
+        allow delete: if false;
+      }
+      match /meta/sugerencias {
+        allow read: if auth();
+        allow create, update: if auth()
+          &amp;&amp; request.resource.data.keys().hasOnly(['entradas'])
+          &amp;&amp; request.resource.data.entradas.size() &lt;= 5000;
+        allow delete: if false;
+      }
+    }
+  }
+}</code></pre>
+    <p style="font-size:14.5px;color:var(--ink-2)">Las reglas no impiden que alguien con la URL escriba (es el modelo elegido); sí impiden basura sin forma, listados masivos y borrados físicos. Cambiar reglas = <code>firebase deploy --only firestore:rules</code>, sin redeploy de la app.</p>
+  </details>
+  </div>
+</section>
+
+<section id="sync" class="prose">
+  <h2>6. Tiempo real y offline</h2>
+  <div class="grid-2">
+    <div>
+      <h4 style="margin-top:0">Tiempo real</h4>
+      <p style="font-size:15.5px">Un listener <code>onSnapshot</code> por lista mantiene un stream abierto y recibe solo deltas. Papá agrega “cerveza” → en su pantalla aparece al instante (compensación de latencia local) → mamá lo ve en &lt;0,5 s si tiene la app abierta. Costo: 1 lectura por documento cambiado por dispositivo que escucha. Un día muy activo: &lt;300 lecturas contra 50.000 gratis por día.</p>
+    </div>
+    <div>
+      <h4 style="margin-top:0">Offline</h4>
+      <p style="font-size:15.5px">Lectura: el service worker precachea el shell y la caché de Firestore tiene la última copia de la lista → la app abre y muestra todo sin señal (condición: haberla abierto online alguna vez en ese teléfono; el listener la mantiene fresca hasta el último segundo con señal). Escritura: cada acción se aplica a la caché y se encola; la cola sobrevive a cerrar la app y reiniciar el teléfono; al reconectar se manda en orden, exactamente una vez.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <div class="eyebrow">Límite que hay que decir en voz alta</div>
+    <p style="margin:6px 0 0">No hay sincronización en segundo plano en la web (ni en iOS ni con la app cerrada). Si mamá tilda todo sin señal y no vuelve a abrir la app con conexión, papá no lo ve. Solución de producto: contador visible “3 cambios sin sincronizar” y el hábito natural de abrir la app al volver a casa. Es igual en las tres arquitecturas.</p>
+  </div>
+  <h3>Quién “tiene razón” cuando dos escriben a la vez</h3>
+  <p>Nadie: hay reglas de fusión deterministas y todos los teléfonos convergen al mismo estado. Modelo de consistencia <strong>eventual y convergente</strong>, sin bloqueos ni “alguien está editando”. Un documento por ítem; el servidor serializa las escrituras por documento; el orden es el de <em>llegada al servidor</em>, nunca el reloj del teléfono.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Caso</th><th>Qué pasa</th></tr></thead>
+    <tbody>
+      <tr><td>Dos anotan <strong>cosas distintas</strong> a la vez</td><td>Sin conflicto: dos documentos con ids distintos (generados en el teléfono, 20 caracteres aleatorios; colisión imposible en la práctica).</td></tr>
+      <tr><td>Dos anotan <strong>lo mismo</strong> sin verse (offline, o en el mismo segundo)</td><td>Dos documentos con el mismo <code>textoNorm</code> → <strong>deduplicación determinista</strong> (§5): se conserva el más antiguo, el otro pasa a borrado lógico; toast “Papá también anotó yogur; los junté”.</td></tr>
+      <tr><td>Dos tocan <strong>el mismo ítem, campos distintos</strong> (mamá tilda offline; papá corrige el texto online)</td><td>Firestore fusiona <strong>por campo</strong>: quedan los dos cambios.</td></tr>
+      <tr><td>Dos tocan <strong>el mismo campo</strong> (los dos tildan/destildan el mismo ítem)</td><td>Gana la última escritura <strong>en llegar al servidor</strong>. Nadie ve un error; el estado final es el mismo para todos. La verdad es lo que hay en el changuito.</td></tr>
+      <tr><td>Uno <strong>borra</strong>, otro <strong>tilda</strong> (sin verse)</td><td>Como es borrado lógico, no falla ninguna escritura; gana la última en llegar. Si molesta, se deriva el estado de dos timestamps (§5).</td></tr>
+      <tr><td><strong>Reintentos</strong> por señal mala</td><td>Nunca duplican: agregar es “escribir el documento con <em>este</em> id”; los reintentos del SDK son exactamente-una-vez.</td></tr>
+      <tr><td><strong>Fechas y orden</strong></td><td>Siempre <code>serverTimestamp()</code>: “hace 2 h” y el orden no dependen de que un teléfono tenga la hora mal. Mientras una escritura está pendiente, el SDK entrega una estimación y la UI la tolera (los ítems recién agregados van al final; no “saltan” al confirmarse).</td></tr>
+      <tr><td><strong>La misma persona en dos teléfonos</strong></td><td>Mismo <code>memberId</code> elegido en cada uno (“¿Sos vos, Mamá?”); dos uids anónimos distintos, una sola identidad.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Transacciones (leer-modificar-escribir con reintento) existen y no hacen falta: el único contador (sugerencias) usa <code>increment</code> atómico. En la alternativa Node sería igual, con un número de secuencia del servidor haciendo de orden.</p>
+  <h3>Estados que la UI tiene que mostrar</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Señal del SDK</th><th>Qué significa</th><th>Qué se ve</th></tr></thead>
+    <tbody>
+      <tr><td><code>snapshot.metadata.fromCache</code> + <code>navigator.onLine</code></td><td>Estás viendo la copia local, sin servidor</td><td>Pastilla <span class="pill">○ Sin conexión</span> + “Última vez actualizado hace 40 min” bajo el contador</td></tr>
+      <tr><td><code>hasPendingWrites</code> por documento</td><td>Ese ítem tiene un cambio tuyo que todavía no llegó</td><td>Puntito ámbar al final de la fila; contador “N cambios sin sincronizar” al tocar la pastilla</td></tr>
+      <tr><td>Reconexión y cola vaciándose</td><td>Se están mandando tus cambios</td><td><span class="pill">◐ Sincronizando…</span> (solo si dura &gt;1 s) → <span class="pill check">● En vivo</span> + toast “Listo, sincronizado” solo si había pendientes</td></tr>
+      <tr><td>Primera apertura sin señal y sin caché</td><td>No hay nada que mostrar</td><td>Estado vacío honesto: “No tengo señal y todavía no bajé la lista.” + Reintentar</td></tr>
+    </tbody>
+  </table></div>
+</section>

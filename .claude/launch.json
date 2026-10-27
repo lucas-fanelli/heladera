@@ -1,0 +1,53 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "heladera-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "heladera-emu",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:emu",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "heladera-emu-lan",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:emu:lan"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "heladera-nube",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--host",
+        "--port",
+        "5176",
+        "--strictPort"
+      ],
+      "port": 5176
+    }
+  ]
+}

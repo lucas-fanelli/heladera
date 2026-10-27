@@ -1,0 +1,30 @@
+<section id="nfc" class="prose">
+  <h2>7. Identidad, compartir y accesos rápidos</h2>
+  <h3>Identidad liviana (sin login)</h3>
+  <p>El acceso a la lista lo da el link: <code>/l/&lt;listId&gt;</code> con un id aleatorio de 20 caracteres (no adivinable, no enumerable: las reglas prohíben listar). Cada teléfono elige <em>quién es</em> la primera vez (“¿Quién sos?” → chip “Mamá”) y guarda ese <code>memberId</code> en <code>localStorage</code>. Ese id viaja en cada operación como <code>agregadoPor</code> / <code>compradoPor</code>. No hay contraseñas, no hay cuentas, no hay “olvidé mi clave” — a cambio, cualquiera con el link puede editar y cualquiera puede decir que es Mamá. Para la lista de casa es el trade-off correcto: <span class="note">el link es el secreto, como la llave de casa</span>. La Auth anónima de Firebase corre por debajo, invisible: solo sirve para que las reglas tengan un <code>uid</code> que validar.</p>
+  <div class="callout">
+    <div class="eyebrow">Si algún día hace falta más</div>
+    <p style="margin:6px 0 0">El modelo deja la puerta abierta: vincular la cuenta anónima a Google (<code>linkWithPopup</code>) y pasar a reglas por membresía, o un link de solo lectura, se pueden agregar sin tocar el modelo de ítems. No lo hacemos ahora porque agrega fricción a mamá y papá sin resolver un problema real.</p>
+  </div>
+
+  <h3>Cómo funciona el acceso (y por qué no hay “compartir lista”)</h3>
+  <p>No hay acceso “público”. La lista vive en <code>/l/&lt;listId&gt;</code>; nadie puede listar las listas ni adivinar el id; la ve quien tiene la URL. Entonces <strong>sumar a alguien = pasarle el link una vez</strong>: vos creás la lista, anotás tres o cuatro cosas reales, y desde ⋯ › <strong>Sumar a alguien</strong> mandás el link por WhatsApp (<code>navigator.share</code>; copiar en desktop). Mamá lo abre, elige su nombre, y opcionalmente “Agregar al inicio”. Fin: de ahí en más todos miran la misma lista y no hay nada que compartir. La fila “Sumar a alguien” queda en el menú para el día que cambien de teléfono o se sume alguien más.</p>
+  <p>Lo que sí es útil todos los días es lo contrario: <strong>⋯ › Mandar la lista por WhatsApp</strong>, que arma un texto plano con los pendientes (“Lista de casa (7): · Leche · Yerba · Pan…”) y abre la hoja de compartir del sistema. Sirve para quien no tiene la app, para el vecino que va al súper, o por las dudas. Es texto: no requiere nada.</p>
+
+  <h3>Accesos rápidos: la app se abre por URL, y nada más</h3>
+  <p>La app no sabe ni le importa desde dónde la abrieron. Todos los accesos producen la misma cosa: una URL. Para que puedan cambiarse sin tocar nada, los accesos físicos (QR, pegatina) usan el <strong>link corto</strong> <code>https://&lt;proyecto&gt;.web.app/h</code>, que Hosting redirige (301) a <code>/l/&lt;id&gt;?anotar</code>. <code>?anotar</code> es un parámetro genérico —“abrí lista para escribir”— que puede usar cualquier acceso (un atajo, un favorito): en Android enfoca el input con el teclado listo; en iPhone queda a un tap (Safari no abre teclado sin gesto). Sin el parámetro, la app no roba el foco.</p>
+  <div class="callout">
+    <div class="eyebrow">Esto vive en el README, no en la app</div>
+    <p style="margin:6px 0 0">Cómo imprimir el QR (<code>npm run qr</code> genera el PNG del link corto), cómo grabar la pegatina con NFC Tools, cómo agregar la app al inicio en Android y iPhone. Son instrucciones para quien arma la casa (vos), una vez. Meterlas en la app sería confundir producto con documentación.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Acceso</th><th>Cómo se arma</th><th>Qué pasa al usarlo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Ícono en el inicio</strong></td><td>“Agregar al inicio” (Android: “Instalar app”; iPhone: Compartir › Agregar a inicio).</td><td>Abre la PWA a pantalla completa. Es el acceso de todos los días.</td></tr>
+      <tr><td><strong>Link de WhatsApp</strong></td><td>⋯ › Sumar a alguien → Web Share (fallback copiar). Una vez por persona.</td><td>Abre el navegador (o la PWA instalada en Android).</td></tr>
+      <tr><td><strong>QR en la heladera</strong></td><td><code>npm run qr</code> (README) → PNG del link corto; se imprime y se pega.</td><td>La cámara del teléfono abre la URL. Funciona igual en todos los teléfonos.</td></tr>
+      <tr><td><strong>Pegatina NFC</strong></td><td>Se graba una vez con NFC Tools (Android o iPhone): Escribir › Agregar registro › URL. Cabe de sobra en un NTAG213 (144 bytes).</td><td><strong>Android</strong>: se abre la lista (dentro de la PWA instalada si la URL está en su scope). <strong>iPhone XS+</strong>: banner arriba → tap → Safari (no la PWA instalada; limitación de iOS). Ambos con pantalla encendida.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Consecuencias de diseño: la URL de los accesos tiene que ser <span class="note">estable para siempre</span> (por eso el link corto), la primera carga tiene que ser rápida aun sin caché (en iPhone siempre entra “por navegador”), y el input tiene que estar a mano al abrir. Nada de esto es específico de NFC ni vive en la app: son instrucciones del README, igual que imprimir el QR. Para los iPhone de la casa la instrucción es “usala desde Safari (favorito), no hace falta instalarla”: así cualquier acceso y el uso diario caen en el mismo almacenamiento, sin dos identidades ni dos cachés. Y la pegatina, mejor sin bloquear (“lock” es irreversible) hasta que la familia la use un par de semanas.</p>
+</section>
